@@ -599,6 +599,21 @@ const LabUserDashboard = () => {
                     All Reports
                   </Button>
 
+                  <div className="ml-auto">
+                    <Select value={environment || undefined} onValueChange={(v) => setEnvironment(v)}>
+                      <SelectTrigger className="w-[160px] h-9">
+                        <SelectValue placeholder="Environment" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="live">Live</SelectItem>
+                        <SelectItem value="sandbox">Sandbox</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Actions Row: Import & Add */}
+                <div className="flex items-center gap-2.5 mb-4">
                   <Button
                     variant="outline"
                     size="sm"
@@ -709,18 +724,6 @@ const LabUserDashboard = () => {
                     <Plus className="h-4 w-4" />
                     Add Specimen
                   </Button>
-
-                  <div className="ml-auto">
-                    <Select value={environment || undefined} onValueChange={(v) => setEnvironment(v)}>
-                      <SelectTrigger className="w-[160px] h-9">
-                        <SelectValue placeholder="Environment" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="live">Live</SelectItem>
-                        <SelectItem value="sandbox">Sandbox</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
 
                 {(() => {
