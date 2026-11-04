@@ -527,7 +527,7 @@ const LabUserDashboard = () => {
                         <button
                           type="button"
                           onClick={handleClearAll}
-                          className="text-sm text-muted-foreground hover:text-foreground"
+                          className="text-sm text-muted-foreground hover:text-foreground cursor-pointer"
                         >
                           Clear All
                         </button>
@@ -571,34 +571,6 @@ const LabUserDashboard = () => {
                     </PopoverContent>
                   </Popover>
 
-                  <Button
-                    variant={reportFilter === "awaiting" ? "default" : "outline"}
-                    size="sm"
-                    className={`h-9 ${reportFilter === "awaiting" ? "bg-primary text-primary-foreground" : ""}`}
-                    onClick={() => handleFilterChange("awaiting")}
-                  >
-                    <Clock className="h-4 w-4" />
-                    Reports Awaiting Release
-                  </Button>
-                  <Button
-                    variant={reportFilter === "released" ? "default" : "outline"}
-                    size="sm"
-                    className={`h-9 ${reportFilter === "released" ? "bg-primary text-primary-foreground" : ""}`}
-                    onClick={() => handleFilterChange("released")}
-                  >
-                    <FileCheck className="h-4 w-4" />
-                    Released Reports
-                  </Button>
-                  <Button
-                    variant={reportFilter === "all" ? "default" : "outline"}
-                    size="sm"
-                    className={`h-9 ${reportFilter === "all" ? "bg-primary text-primary-foreground" : ""}`}
-                    onClick={() => handleFilterChange("all")}
-                  >
-                    <Files className="h-4 w-4" />
-                    All Reports
-                  </Button>
-
                   <div className="ml-auto">
                     <Select value={environment || undefined} onValueChange={(v) => setEnvironment(v)}>
                       <SelectTrigger className="w-[160px] h-9">
@@ -612,118 +584,150 @@ const LabUserDashboard = () => {
                   </div>
                 </div>
 
-                {/* Actions Row: Import & Add */}
-                <div className="flex items-center gap-2.5 mb-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleOpenImport("specimen")}
-                    className="h-9 gap-1.5 cursor-pointer font-medium hover:border-primary/50 transition-colors"
-                  >
-                    <Upload className="h-4 w-4 text-primary" />
-                    Import Specimen
-                  </Button>
+                {/* Row 2: Status View Tabs (Left) & Actions (Right) */}
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={reportFilter === "awaiting" ? "default" : "outline"}
+                      size="sm"
+                      className={`h-9 ${reportFilter === "awaiting" ? "bg-primary text-primary-foreground" : ""}`}
+                      onClick={() => handleFilterChange("awaiting")}
+                    >
+                      <Clock className="h-4 w-4" />
+                      Reports Awaiting Release
+                    </Button>
+                    <Button
+                      variant={reportFilter === "released" ? "default" : "outline"}
+                      size="sm"
+                      className={`h-9 ${reportFilter === "released" ? "bg-primary text-primary-foreground" : ""}`}
+                      onClick={() => handleFilterChange("released")}
+                    >
+                      <FileCheck className="h-4 w-4" />
+                      Released Reports
+                    </Button>
+                    <Button
+                      variant={reportFilter === "all" ? "default" : "outline"}
+                      size="sm"
+                      className={`h-9 ${reportFilter === "all" ? "bg-primary text-primary-foreground" : ""}`}
+                      onClick={() => handleFilterChange("all")}
+                    >
+                      <Files className="h-4 w-4" />
+                      All Reports
+                    </Button>
+                  </div>
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 gap-1.5 cursor-pointer font-medium hover:border-primary/50 transition-colors"
-                      >
-                        <FileDown className="h-4 w-4 text-primary" />
-                        Import Results
-                        <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-[280px] p-1.5 rounded-xl shadow-xl border border-border">
-                      <div className="px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                        Genomic Result Imports
-                      </div>
-                      <DropdownMenuSeparator className="my-1" />
+                  <div className="flex items-center gap-2.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenImport("specimen")}
+                      className="h-9 gap-1.5 cursor-pointer font-medium hover:border-primary/50 transition-colors"
+                    >
+                      <Upload className="h-4 w-4 text-primary" />
+                      Import Specimen
+                    </Button>
 
-                      <DropdownMenuItem
-                        onClick={() => handleOpenImport("cnv")}
-                        className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
-                      >
-                        <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-                          <FileSpreadsheet className="h-4 w-4" />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 gap-1.5 cursor-pointer font-medium hover:border-primary/50 transition-colors"
+                        >
+                          <FileDown className="h-4 w-4 text-primary" />
+                          Import Results
+                          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-[280px] p-1.5 rounded-xl shadow-xl border border-border">
+                        <div className="px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                          Genomic Result Imports
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-foreground">Import CNV</span>
-                            <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv</span>
+                        <DropdownMenuSeparator className="my-1" />
+
+                        <DropdownMenuItem
+                          onClick={() => handleOpenImport("cnv")}
+                          className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
+                        >
+                          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                            <FileSpreadsheet className="h-4 w-4" />
                           </div>
-                          <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                            Copy Number Variation data
-                          </p>
-                        </div>
-                      </DropdownMenuItem>
-
-                      <DropdownMenuItem
-                        onClick={() => handleOpenImport("snp")}
-                        className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
-                      >
-                        <div className="p-2 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0">
-                          <Dna className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-foreground">Import SNP</span>
-                            <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.xlsx</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-foreground">Import CNV</span>
+                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv</span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                              Copy Number Variation data
+                            </p>
                           </div>
-                          <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                            Single Nucleotide Polymorphism
-                          </p>
-                        </div>
-                      </DropdownMenuItem>
+                        </DropdownMenuItem>
 
-                      <DropdownMenuItem
-                        onClick={() => handleOpenImport("slc6a4")}
-                        className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
-                      >
-                        <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
-                          <FileCheck2 className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-foreground">Import SLC6A4</span>
-                            <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.tsv</span>
+                        <DropdownMenuItem
+                          onClick={() => handleOpenImport("snp")}
+                          className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
+                        >
+                          <div className="p-2 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0">
+                            <Dna className="h-4 w-4" />
                           </div>
-                          <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                            Targeted genotyping assays
-                          </p>
-                        </div>
-                      </DropdownMenuItem>
-
-                      <DropdownMenuItem
-                        onClick={() => handleOpenImport("vcf")}
-                        className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
-                      >
-                        <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-                          <FileCode2 className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-foreground">Import VCF</span>
-                            <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.vcf</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-foreground">Import SNP</span>
+                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.xlsx</span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                              Single Nucleotide Polymorphism
+                            </p>
                           </div>
-                          <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                            Variant Call Format files
-                          </p>
-                        </div>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        </DropdownMenuItem>
 
-                  <Button
-                    size="sm"
-                    onClick={() => navigate("/lab-user/add-specimen")}
-                    className="h-9 gap-1.5 cursor-pointer font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Specimen
-                  </Button>
+                        <DropdownMenuItem
+                          onClick={() => handleOpenImport("slc6a4")}
+                          className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
+                        >
+                          <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                            <FileCheck2 className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-foreground">Import SLC6A4</span>
+                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.tsv</span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                              Targeted genotyping assays
+                            </p>
+                          </div>
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          onClick={() => handleOpenImport("vcf")}
+                          className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
+                        >
+                          <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                            <FileCode2 className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-foreground">Import VCF</span>
+                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.vcf</span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                              Variant Call Format files
+                            </p>
+                          </div>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <Button
+                      size="sm"
+                      onClick={() => navigate("/lab-user/add-specimen")}
+                      className="h-9 gap-1.5 cursor-pointer font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Specimen
+                    </Button>
+                  </div>
                 </div>
 
                 {(() => {
