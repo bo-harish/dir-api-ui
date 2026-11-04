@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 220 15% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 20%;
+
+    --primary: 168 80% 32%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 200 20% 96%;
+    --secondary-foreground: 220 15% 20%;
+
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 168 80% 32%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 168 80% 32%;
+
+    --radius: 0.5rem;
+
+    /* Admin-specific tokens */
+    --section-header: 200 20% 96%;
+    --table-header: 210 20% 98%;
+    --link-color: 168 80% 32%;
+    --success: 168 80% 32%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 168 80% 32%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 200 20% 96%;
+    --sidebar-accent-foreground: 220 15% 20%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 168 80% 32%;
+  }
+
+  .dark {
+    --background: 220 20% 10%;
+    --foreground: 210 20% 98%;
+
+    --card: 220 20% 12%;
+    --card-foreground: 210 20% 98%;
+
+    --popover: 220 20% 12%;
+    --popover-foreground: 210 20% 98%;
+
+    --primary: 168 80% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 20% 18%;
+    --secondary-foreground: 210 20% 98%;
+
+    --muted: 220 20% 18%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 168 80% 40%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 20% 98%;
+
+    --border: 220 20% 20%;
+    --input: 220 20% 20%;
+    --ring: 168 80% 40%;
+
+    --section-header: 220 20% 15%;
+    --table-header: 220 20% 12%;
+    --link-color: 168 80% 45%;
+    --success: 168 80% 40%;
+
+    --sidebar-background: 220 20% 8%;
+    --sidebar-foreground: 210 20% 95%;
+    --sidebar-primary: 168 80% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 20% 15%;
+    --sidebar-accent-foreground: 210 20% 95%;
+    --sidebar-border: 220 20% 18%;
+    --sidebar-ring: 168 80% 40%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* Custom subtle scrollbar */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 5px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.7);
+}
