@@ -37,7 +37,11 @@ const SpecimenDetail = () => {
       <div className="p-6">
         {/* Back + Breadcrumb */}
         <div className="flex items-center gap-2 mb-4">
-          <button onClick={() => navigate("/lab-user")} className="text-muted-foreground hover:text-foreground">
+          <button
+            onClick={() => navigate("/lab-user")}
+            className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:bg-accent hover:text-white transition-colors cursor-pointer"
+            aria-label="Back"
+          >
             <ArrowLeft className="h-4 w-4" />
           </button>
           <nav className="text-sm text-muted-foreground">

@@ -18,10 +18,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArrowLeft, Save, X, TestTube2, User, Building2, Pill } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  X,
+  TestTube2,
+  User,
+  Building2,
+  Pill,
+  Plus,
+  Trash2,
+  AlertTriangle,
+} from "lucide-react";
 import LabHeader from "@/components/LabHeader";
 import { useSpecimenContext } from "@/context/SpecimenContext";
-import { Specimen } from "@/data/mockSpecimens";
+import { Specimen, PrescribedMedication } from "@/data/mockSpecimens";
+import { searchDrugBank, DrugBankRecord } from "@/data/mockDrugBank";
 import { toast } from "sonner";
 
 export const AddEditSpecimen = () => {
@@ -70,6 +82,24 @@ export const AddEditSpecimen = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Currently Prescribed Medications & DrugBank search state
+  const [prescribedMedications, setPrescribedMedications] = useState<PrescribedMedication[]>([]);
+  const [isSearchingDrug, setIsSearchingDrug] = useState(false);
+  const [drugSearchQuery, setDrugSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{ results: DrugBankRecord[]; totalCount: number }>({
+    results: [],
+    totalCount: 0,
+  });
+
+  useEffect(() => {
+    if (drugSearchQuery.trim()) {
+      const res = searchDrugBank(drugSearchQuery);
+      setSearchResults(res);
+    } else {
+      setSearchResults({ results: [], totalCount: 0 });
+    }
+  }, [drugSearchQuery]);
+
   useEffect(() => {
     if (existingSpecimen) {
       setFormData({
@@ -101,6 +131,29 @@ export const AddEditSpecimen = () => {
         currentMedicationsReason: existingSpecimen.currentMedicationsReason || "",
         currentMedicationsComments: existingSpecimen.currentMedicationsComments || "",
       });
+
+      // Load Prescribed Medications (Default specimen 1 to Rosuvastatin if not already set)
+      if (existingSpecimen.prescribedMedications && existingSpecimen.prescribedMedications.length > 0) {
+        setPrescribedMedications(existingSpecimen.prescribedMedications);
+      } else if (existingSpecimen.id === "1" || specimenId === "1" || existingSpecimen.currentMedicationsList?.toLowerCase().includes("rosuvastatin")) {
+        setPrescribedMedications([
+          { id: "med-1", name: "Rosuvastatin", sig: "", dosage: "5 mg/l", formulation: "Rosuvastatin 5 mg Oral Tablet" }
+        ]);
+      } else if (existingSpecimen.currentMedicationsList) {
+        const parsed = existingSpecimen.currentMedicationsList
+          .split(",")
+          .map((m) => m.trim())
+          .filter(Boolean)
+          .map((name, idx) => ({
+            id: `med-${idx}`,
+            name,
+            sig: "",
+            dosage: "10 mg",
+          }));
+        setPrescribedMedications(parsed);
+      } else {
+        setPrescribedMedications([]);
+      }
     } else if (!isEditing) {
       // Pre-fill smart defaults for new specimen
       const today = new Date().toLocaleDateString("en-US", {
@@ -115,8 +168,33 @@ export const AddEditSpecimen = () => {
         collected: today,
         received: today,
       }));
+      setPrescribedMedications([]);
     }
-  }, [existingSpecimen, isEditing]);
+  }, [existingSpecimen, isEditing, specimenId]);
+
+  const handleSelectDrug = (record: DrugBankRecord) => {
+    const newMed: PrescribedMedication = {
+      id: `med-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: record.name,
+      sig: "",
+      dosage: record.strength || "5 mg/l",
+      formulation: record.formulation,
+    };
+    setPrescribedMedications((prev) => [...prev, newMed]);
+    setDrugSearchQuery("");
+    setIsSearchingDrug(false);
+    toast.success(`Added ${record.name} to prescribed medications`);
+  };
+
+  const handleUpdateMed = (id: string, field: "sig" | "dosage", val: string) => {
+    setPrescribedMedications((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, [field]: val } : m))
+    );
+  };
+
+  const handleRemoveMed = (id: string) => {
+    setPrescribedMedications((prev) => prev.filter((m) => m.id !== id));
+  };
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -153,13 +231,19 @@ export const AddEditSpecimen = () => {
 
     setIsSubmitting(true);
 
+    const payload: Partial<Specimen> = {
+      ...formData,
+      prescribedMedications,
+      currentMedicationsList: prescribedMedications.map((m) => m.name).join(", "),
+    };
+
     try {
       if (isEditing && (existingSpecimen || specimenId)) {
         const targetId = existingSpecimen?.id || specimenId!;
-        updateSpecimen(targetId, formData as Partial<Specimen>);
+        updateSpecimen(targetId, payload);
         navigate(`/lab-user/specimen/${targetId}`);
       } else {
-        const created = addSpecimen(formData as Partial<Specimen>);
+        const created = addSpecimen(payload);
         navigate(`/lab-user`);
       }
     } catch (err) {
@@ -182,7 +266,7 @@ export const AddEditSpecimen = () => {
             variant="ghost"
             size="icon"
             onClick={() => navigate(-1)}
-            className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
+            className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-white cursor-pointer"
             aria-label="Back"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -573,67 +657,145 @@ export const AddEditSpecimen = () => {
                 <CardTitle className="text-base font-semibold">Current Medications & Clinical Information</CardTitle>
               </div>
               <CardDescription>
-                Medication regimen, PGx model name, reason for prescription, and clinical comments.
+                Search DrugBank to manage prescribed medications, sig, and dosage for PGx testing.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-5 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="currentMedicationsList" className="text-xs font-semibold text-foreground">
-                    Current Medications List
-                  </Label>
-                  <Input
-                    id="currentMedicationsList"
-                    value={formData.currentMedicationsList}
-                    onChange={(e) => handleChange("currentMedicationsList", e.target.value)}
-                    placeholder="e.g. Omeprazole, Citalopram, Warfarin, Metoprolol"
-                    className="mt-1 h-9"
-                  />
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Comma-separated list of active medications to evaluate against PGx drug guidelines.
-                  </p>
+              {/* Search Mode - Image 1 */}
+              {isSearchingDrug && (
+                <div className="space-y-2">
+                  <div className="relative">
+                    <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg border-2 border-primary/50 bg-background shadow-xs">
+                      <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <input
+                        type="text"
+                        autoFocus
+                        value={drugSearchQuery}
+                        onChange={(e) => setDrugSearchQuery(e.target.value)}
+                        placeholder="Search DrugBank (e.g. rosuvasta, omeprazole, warfarin, atorvastatin...)"
+                        className="w-full bg-transparent border-0 outline-none text-sm placeholder:text-muted-foreground"
+                      />
+                      {drugSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setDrugSearchQuery("")}
+                          className="text-muted-foreground hover:text-foreground cursor-pointer"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIsSearchingDrug(false);
+                          setDrugSearchQuery("");
+                        }}
+                        className="h-7 px-2 text-xs text-muted-foreground hover:bg-accent hover:text-white cursor-pointer"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+
+                    {/* Dropdown Results from DrugBank */}
+                    {drugSearchQuery.trim() && (
+                      <div className="mt-1.5 rounded-lg border border-border bg-popover shadow-xl overflow-hidden z-20">
+                        {/* Alert Banner as shown in Image 1 */}
+                        <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-900 dark:text-amber-200">
+                          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                          <span>
+                            <strong className="font-semibold text-foreground">
+                              {searchResults.totalCount} records
+                            </strong>{" "}
+                            of {drugSearchQuery} exist, choose the correct one
+                          </span>
+                        </div>
+
+                        {/* List of matching DrugBank records */}
+                        <div className="max-h-64 overflow-y-auto divide-y divide-border/40">
+                          {searchResults.results.map((item) => (
+                            <div
+                              key={item.id}
+                              onClick={() => handleSelectDrug(item)}
+                              className="px-4 py-2.5 text-sm text-foreground hover:bg-muted/80 cursor-pointer flex items-center justify-between transition-colors group"
+                            >
+                              <span>
+                                {item.name}{" "}
+                                <span className="text-muted-foreground">
+                                  ({item.formulation})
+                                </span>
+                              </span>
+                              <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
+              )}
 
-                <div>
-                  <Label htmlFor="currentMedicationsModelName" className="text-xs font-semibold text-foreground">
-                    Current Medications Model Name
-                  </Label>
-                  <Input
-                    id="currentMedicationsModelName"
-                    value={formData.currentMedicationsModelName}
-                    onChange={(e) => handleChange("currentMedicationsModelName", e.target.value)}
-                    placeholder="e.g. PGx Standard Model v2"
-                    className="mt-1 h-9"
-                  />
+              {/* Prescribed Medications Rows - Image 2 */}
+              {prescribedMedications.length > 0 ? (
+                <div className="space-y-2.5">
+                  {prescribedMedications.map((med) => (
+                    <div
+                      key={med.id}
+                      className="flex flex-col sm:flex-row sm:items-center gap-3 p-3.5 rounded-lg border border-border bg-background shadow-xs hover:border-border/80 transition-all"
+                    >
+                      <div className="sm:w-52 font-medium text-sm text-foreground truncate">
+                        {med.name}
+                      </div>
+                      <div className="flex-1">
+                        <Input
+                          value={med.sig}
+                          onChange={(e) => handleUpdateMed(med.id, "sig", e.target.value)}
+                          placeholder="Sig"
+                          className="h-10 text-sm"
+                        />
+                      </div>
+                      <div className="sm:w-48">
+                        <Input
+                          value={med.dosage}
+                          onChange={(e) => handleUpdateMed(med.id, "dosage", e.target.value)}
+                          placeholder="5 mg/l"
+                          className="h-10 text-sm"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMed(med.id)}
+                        aria-label={`Delete ${med.name}`}
+                        className="h-9 w-9 rounded-full bg-muted/60 hover:bg-destructive/15 text-muted-foreground hover:text-destructive flex items-center justify-center shrink-0 cursor-pointer transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              ) : (
+                !isSearchingDrug && (
+                  <div className="py-6 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
+                    No medications prescribed yet. Click below to search and add medications from DrugBank.
+                  </div>
+                )
+              )}
 
-              <div>
-                <Label htmlFor="currentMedicationsReason" className="text-xs font-semibold text-foreground">
-                  Current Medications Reason
-                </Label>
-                <Input
-                  id="currentMedicationsReason"
-                  value={formData.currentMedicationsReason}
-                  onChange={(e) => handleChange("currentMedicationsReason", e.target.value)}
-                  placeholder="e.g. Depression, Cardiovascular Risk, Acid Reflux"
-                  className="mt-1 h-9"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="currentMedicationsComments" className="text-xs font-semibold text-foreground">
-                  Current Medications Comments
-                </Label>
-                <Textarea
-                  id="currentMedicationsComments"
-                  value={formData.currentMedicationsComments}
-                  onChange={(e) => handleChange("currentMedicationsComments", e.target.value)}
-                  placeholder="Enter any clinical notes, adverse drug reactions, dosage nuances, or physician instructions..."
-                  rows={4}
-                  className="mt-1 resize-y min-h-[90px]"
-                />
-              </div>
+              {/* + Add Medication Button Bar - Image 2 */}
+              {!isSearchingDrug && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSearchingDrug(true);
+                    setDrugSearchQuery("");
+                  }}
+                  className="w-full flex items-center gap-2 px-4 py-3 rounded-lg border border-dashed border-border hover:border-primary/60 hover:bg-primary/5 text-sm font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+                >
+                  <Plus className="h-4 w-4 text-primary" />
+                  <span>+ Add Medication</span>
+                </button>
+              )}
             </CardContent>
           </Card>
 

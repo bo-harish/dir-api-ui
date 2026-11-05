@@ -116,7 +116,7 @@ export const ColumnSelector: React.FC<ColumnSelectorProps> = ({ columns, onApply
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="relative inline-flex items-center justify-center h-9 w-9 rounded-lg border border-input bg-background hover:bg-accent text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+              className="relative inline-flex items-center justify-center h-9 w-9 rounded-lg border border-input bg-background hover:bg-accent text-muted-foreground hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
               aria-label="Customize columns"
             >
               <SlidersHorizontal className="h-4 w-4" />

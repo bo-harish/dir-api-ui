@@ -1,3 +1,11 @@
+export interface PrescribedMedication {
+  id: string;
+  name: string;
+  sig: string;
+  dosage: string;
+  formulation?: string;
+}
+
 export interface Specimen {
   id: string;
   lcId: string;
@@ -28,10 +36,11 @@ export interface Specimen {
   hasView: boolean;
   race?: string;
   providerState?: string;
+  prescribedMedications?: PrescribedMedication[];
 }
 
 export const mockSpecimens: Specimen[] = [
-  { id: "1", lcId: "LC-4429", collected: "01/12/2026", received: "01/12/2026", specimenId: "DEVTest_100", facility: "Recovery Unplugged", status: "New", reported: "01/15/2026", lastUpdated: "01/16/2026", patientFirstName: "Singh", patientLastName: "Mika", dateOfBirth: "12/12/1995", gender: "F", mrn: "MRN-1001", collectionMethodCode: "1733104001", collectionMethodLabel: "Buccal swab", providerTitle: "Dr.", provider: "JAANKI BHAKTA", providerNPI: "1234568901", facilityAddress: "1 Sweet Lane, Suite T, Downtown, NE 00045", currentMedicationsList: "", currentMedicationsModelName: "", currentMedicationsReason: "", currentMedicationsComments: "", batchNumber: "", hasDownload: true, hasView: false, race: "Asian", providerState: "NE" },
+  { id: "1", lcId: "LC-4429", collected: "01/12/2026", received: "01/12/2026", specimenId: "DEVTest_100", facility: "Recovery Unplugged", status: "New", reported: "01/15/2026", lastUpdated: "01/16/2026", patientFirstName: "Singh", patientLastName: "Mika", dateOfBirth: "12/12/1995", gender: "F", mrn: "MRN-1001", collectionMethodCode: "1733104001", collectionMethodLabel: "Buccal swab", providerTitle: "Dr.", provider: "JAANKI BHAKTA", providerNPI: "1234568901", facilityAddress: "1 Sweet Lane, Suite T, Downtown, NE 00045", currentMedicationsList: "Rosuvastatin", currentMedicationsModelName: "", currentMedicationsReason: "", currentMedicationsComments: "", batchNumber: "", hasDownload: true, hasView: false, race: "Asian", providerState: "NE", prescribedMedications: [{ id: "med-1", name: "Rosuvastatin", sig: "", dosage: "5 mg/l", formulation: "Rosuvastatin 5 mg Oral Tablet" }] },
   { id: "2", lcId: "LC-4411", collected: "02/11/2026", received: "02/11/2026", specimenId: "Test-RMDX-1211", facility: "QA Account ET", status: "New", reported: "02/11/2026", lastUpdated: "02/11/2026", patientFirstName: "Tom", patientLastName: "Agnes", dateOfBirth: "09/08/2001", gender: "M", mrn: "MRN-1002", collectionMethodCode: "1733104002", collectionMethodLabel: "Buccal swab", providerTitle: "Dr.", provider: "KURT A AARONS", providerNPI: "1234568902", facilityAddress: "2 Sweet Lane, Suite T, Downtown, NE 00045", currentMedicationsList: "", currentMedicationsModelName: "", currentMedicationsReason: "", currentMedicationsComments: "", batchNumber: "ba123", hasDownload: true, hasView: false, race: "Caucasian", providerState: "NE" },
   { id: "3", lcId: "LC-4410", collected: "02/11/2026", received: "02/11/2026", specimenId: "test-rmdx-29", facility: "QA Account ET", status: "New", reported: "02/11/2026", lastUpdated: "03/06/2026", patientFirstName: "patient3", patientLastName: "QA", dateOfBirth: "11/11/2000", gender: "F", mrn: "MRN-1003", collectionMethodCode: "1733104003", collectionMethodLabel: "Buccal swab", providerTitle: "Dr.", provider: "PATRICIA AARDSMA", providerNPI: "1234568903", facilityAddress: "2 Sweet Lane, Suite T, Downtown, NE 00045", currentMedicationsList: "", currentMedicationsModelName: "", currentMedicationsReason: "", currentMedicationsComments: "", batchNumber: "baw2323", hasDownload: true, hasView: true, race: "African American", providerState: "NE" },
   { id: "4", lcId: "LC-4395", collected: "02/11/2026", received: "02/11/2026", specimenId: "test-rmdx-comp-20", facility: "QA Account ET", status: "New", reported: "02/11/2026", lastUpdated: "02/11/2026", patientFirstName: "Tom", patientLastName: "Agnes", dateOfBirth: "09/08/2001", gender: "M", mrn: "MRN-1004", collectionMethodCode: "1733104004", collectionMethodLabel: "Buccal swab", providerTitle: "Dr.", provider: "PATRICIA AARDSMA", providerNPI: "1234568904", facilityAddress: "2 Sweet Lane, Suite T, Downtown, NE 00045", currentMedicationsList: "", currentMedicationsModelName: "", currentMedicationsReason: "", currentMedicationsComments: "", batchNumber: "ba1234", hasDownload: true, hasView: true, race: "Caucasian", providerState: "NE" },

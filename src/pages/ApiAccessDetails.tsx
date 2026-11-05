@@ -255,7 +255,7 @@ const ApiAccessDetails = () => {
     return (
       <div className="max-w-7xl mx-auto px-6 py-8">
         <p className="text-muted-foreground font-bold">No data available. Please navigate from the Dashboard.</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate("/")}>
+        <Button variant="outline" className="mt-4 hover:bg-accent hover:text-white cursor-pointer" onClick={() => navigate("/")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Dashboard
         </Button>
@@ -270,7 +270,7 @@ const ApiAccessDetails = () => {
     <div className="max-w-7xl mx-auto px-6 py-8">
       {/* Header */}
       <div className="mb-6">
-        <Button variant="ghost" className="mb-4 -ml-2" onClick={() => navigate("/")}>
+        <Button variant="ghost" className="mb-4 -ml-2 hover:bg-accent hover:text-white cursor-pointer" onClick={() => navigate("/")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Dashboard
         </Button>

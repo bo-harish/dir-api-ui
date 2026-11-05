@@ -40,7 +40,7 @@ const EditBusiness = () => {
             variant="ghost"
             size="icon"
             onClick={() => navigate("/business-listing")}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:bg-accent hover:text-white cursor-pointer"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

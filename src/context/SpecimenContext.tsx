@@ -80,6 +80,7 @@ export const SpecimenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       batchNumber: data.batchNumber || "",
       hasDownload: data.hasDownload ?? true,
       hasView: data.hasView ?? false,
+      prescribedMedications: data.prescribedMedications || [],
     };
 
     setSpecimens((prev) => [newSpecimen, ...prev]);
