@@ -215,7 +215,7 @@ export const AddEditSpecimen = () => {
               {isEditing ? `Edit Specimen: ${formData.specimenId || specimenId}` : "Add New Specimen"}
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Enter or update all PGx specimen details from LC ID through Current Medications Comments.
+              Enter or update PGx specimen details and clinical information.
             </p>
           </div>
 
@@ -251,23 +251,10 @@ export const AddEditSpecimen = () => {
                 <CardTitle className="text-base font-semibold">Specimen & Order Information</CardTitle>
               </div>
               <CardDescription>
-                Primary specimen identifiers, order dates, status, and collection method.
+                Primary specimen identifier, collection and reporting dates, and collection method.
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <Label htmlFor="lcId" className="text-xs font-semibold text-foreground">
-                  LC ID
-                </Label>
-                <Input
-                  id="lcId"
-                  value={formData.lcId}
-                  onChange={(e) => handleChange("lcId", e.target.value)}
-                  placeholder="e.g. LC-4429"
-                  className="mt-1 h-9"
-                />
-              </div>
-
+            <CardContent className="pt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="specimenId" className="text-xs font-semibold text-foreground">
                   Specimen ID <span className="text-destructive">*</span>
@@ -282,25 +269,6 @@ export const AddEditSpecimen = () => {
                 {errors.specimenId && (
                   <p className="text-[11px] text-destructive mt-1 font-medium">{errors.specimenId}</p>
                 )}
-              </div>
-
-              <div>
-                <Label htmlFor="status" className="text-xs font-semibold text-foreground">
-                  Report Status
-                </Label>
-                <Select value={formData.status} onValueChange={(val) => handleChange("status", val)}>
-                  <SelectTrigger id="status" className="mt-1 h-9">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="New">New</SelectItem>
-                    <SelectItem value="Awaiting Release">Awaiting Release</SelectItem>
-                    <SelectItem value="Released">Released</SelectItem>
-                    <SelectItem value="In Progress">In Progress</SelectItem>
-                    <SelectItem value="Completed">Completed</SelectItem>
-                    <SelectItem value="Cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               <div>

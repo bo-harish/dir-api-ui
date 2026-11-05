@@ -31,7 +31,8 @@ import {
   Filter,
   X,
   Clock,
-  FileCheck,
+  Calendar,
+  CheckCircle2,
   Files,
   Upload,
   FileDown,
@@ -602,7 +603,7 @@ const LabUserDashboard = () => {
                       className={`h-9 ${reportFilter === "released" ? "bg-primary text-primary-foreground" : ""}`}
                       onClick={() => handleFilterChange("released")}
                     >
-                      <FileCheck className="h-4 w-4" />
+                      <CheckCircle2 className="h-4 w-4" />
                       Released Reports
                     </Button>
                     <Button
@@ -617,15 +618,71 @@ const LabUserDashboard = () => {
                   </div>
 
                   <div className="flex items-center gap-2.5">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenImport("specimen")}
-                      className="h-9 gap-1.5 cursor-pointer font-medium hover:border-primary/50 transition-colors"
-                    >
-                      <Upload className="h-4 w-4 text-primary" />
-                      Import Specimen
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 gap-1.5 cursor-pointer font-medium hover:border-primary/50 transition-colors"
+                        >
+                          <Download className="h-4 w-4" />
+                          Import Specimen
+                          <ChevronDown className="h-3 w-3 opacity-70" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-[280px] p-1.5 rounded-xl shadow-xl border border-border">
+                        <div className="px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                          Specimen Ingestion
+                        </div>
+                        <DropdownMenuSeparator className="my-1" />
+
+                        <DropdownMenuItem
+                          onClick={() => handleOpenImport("specimen")}
+                          className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
+                        >
+                          <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                            <Upload className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-foreground">Import Specimen Batch</span>
+                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv / .xlsx</span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                              Upload batch manifest file
+                            </p>
+                          </div>
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          onClick={() => {
+                            const csvContent =
+                              "data:text/csv;charset=utf-8,Specimen ID,Patient First Name,Patient Last Name,DOB,Gender,Facility,Provider,Collection Date\nDEVTest_100,John,Doe,01/01/1990,M,Main Clinic,Dr. Smith,01/15/2026";
+                            const encodedUri = encodeURI(csvContent);
+                            const link = document.createElement("a");
+                            link.setAttribute("href", encodedUri);
+                            link.setAttribute("download", "specimen_import_template.csv");
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
+                          className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
+                        >
+                          <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                            <FileDown className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-foreground">Download Template</span>
+                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv</span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                              Sample specimen CSV headers
+                            </p>
+                          </div>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -634,9 +691,9 @@ const LabUserDashboard = () => {
                           size="sm"
                           className="h-9 gap-1.5 cursor-pointer font-medium hover:border-primary/50 transition-colors"
                         >
-                          <FileDown className="h-4 w-4 text-primary" />
+                          <Download className="h-4 w-4" />
                           Import Results
-                          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                          <ChevronDown className="h-3 w-3 opacity-70" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-[280px] p-1.5 rounded-xl shadow-xl border border-border">
@@ -730,44 +787,78 @@ const LabUserDashboard = () => {
                   </div>
                 </div>
 
-                {(() => {
-                  const groups: { key: "collected" | "received" | "reported"; label: string; from: keyof FilterState; to: keyof FilterState }[] = [
-                    { key: "collected", label: "Collected", from: "collectedFrom", to: "collectedTo" },
-                    { key: "received", label: "Received", from: "receivedFrom", to: "receivedTo" },
-                    { key: "reported", label: "Reported", from: "reportedFrom", to: "reportedTo" },
-                  ];
-                  const activeGroups = groups.filter((g) => appliedFilters[g.from] || appliedFilters[g.to]);
-                  if (activeGroups.length === 0) return null;
-                  return (
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                      {activeGroups.map((g) => {
-                        const from = appliedFilters[g.from];
-                        const to = appliedFilters[g.to];
-                        const range = from && to ? `${from} → ${to}` : from ? `from ${from}` : `until ${to}`;
-                        return (
-                          <span
-                            key={g.key}
-                            className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary border border-primary/30 px-3 py-1 text-xs font-medium"
+                {/* Context Badges & Filter Bar above Table */}
+                <div className="flex flex-wrap items-center gap-2.5 mb-3.5">
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 px-3.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+                    <span>Time Zone :</span>
+                    <Clock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>ET (UTC-05:00)</span>
+                  </div>
+
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 px-3.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+                    <span>Collected :</span>
+                    <Calendar className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>
+                      {appliedFilters.collectedFrom && appliedFilters.collectedTo
+                        ? `${appliedFilters.collectedFrom} → ${appliedFilters.collectedTo}`
+                        : appliedFilters.collectedFrom
+                        ? `from ${appliedFilters.collectedFrom}`
+                        : appliedFilters.collectedTo
+                        ? `until ${appliedFilters.collectedTo}`
+                        : "10-05-2026 → 11-04-2026"}
+                    </span>
+                    {Boolean(appliedFilters.collectedFrom || appliedFilters.collectedTo) && (
+                      <button
+                        type="button"
+                        aria-label="Reset Collected filter"
+                        onClick={() => {
+                          const next = { ...appliedFilters, collectedFrom: "", collectedTo: "" };
+                          setAppliedFilters(next);
+                          setDraftFilters((d) => ({ ...d, collectedFrom: "", collectedTo: "" }));
+                        }}
+                        className="ml-1 hover:text-emerald-600 cursor-pointer"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Additional Active Filter Pills (Received, Reported) */}
+                  {(() => {
+                    const extraGroups: { key: "received" | "reported"; label: string; from: keyof FilterState; to: keyof FilterState }[] = [
+                      { key: "received", label: "Received", from: "receivedFrom", to: "receivedTo" },
+                      { key: "reported", label: "Reported", from: "reportedFrom", to: "reportedTo" },
+                    ];
+                    const activeExtras = extraGroups.filter((g) => appliedFilters[g.from] || appliedFilters[g.to]);
+                    return activeExtras.map((g) => {
+                      const from = appliedFilters[g.from];
+                      const to = appliedFilters[g.to];
+                      const range = from && to ? `${from} → ${to}` : from ? `from ${from}` : `until ${to}`;
+                      return (
+                        <div
+                          key={g.key}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 px-3.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300"
+                        >
+                          <span>{g.label} :</span>
+                          <Calendar className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                          <span>{range}</span>
+                          <button
+                            type="button"
+                            aria-label={`Remove ${g.label} filter`}
+                            onClick={() => {
+                              const next = { ...appliedFilters, [g.from]: "", [g.to]: "" };
+                              setAppliedFilters(next);
+                              setDraftFilters((d) => ({ ...d, [g.from]: "", [g.to]: "" }));
+                            }}
+                            className="ml-1 hover:text-emerald-600 cursor-pointer"
                           >
-                            <span>{g.label}: {range}</span>
-                            <button
-                              type="button"
-                              aria-label={`Remove ${g.label} filter`}
-                              onClick={() => {
-                                const next = { ...appliedFilters, [g.from]: "", [g.to]: "" };
-                                setAppliedFilters(next);
-                                setDraftFilters((d) => ({ ...d, [g.from]: "", [g.to]: "" }));
-                              }}
-                              className="hover:text-primary/70"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </span>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
 
                 {/* Table */}
                 <div className="border border-border rounded-md overflow-auto">
