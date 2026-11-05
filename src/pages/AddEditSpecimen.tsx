@@ -505,27 +505,16 @@ export const AddEditSpecimen = () => {
                 <Label htmlFor="specimenType" className="text-xs font-semibold text-foreground">
                   Specimen Type <span className="text-destructive">*</span>
                 </Label>
-                <Select
+                <Input
+                  id="specimenType"
                   value={formData.specimenType}
-                  onValueChange={(val) => {
-                    handleChange("specimenType", val);
-                    handleChange("collectionMethodLabel", val);
-                    if (val === "Buccal swab") handleChange("collectionMethodCode", "1733104001");
-                    else if (val === "Saliva") handleChange("collectionMethodCode", "1733104002");
-                    else if (val === "Blood (EDTA)") handleChange("collectionMethodCode", "1733104003");
+                  onChange={(e) => {
+                    handleChange("specimenType", e.target.value);
+                    handleChange("collectionMethodLabel", e.target.value);
                   }}
-                >
-                  <SelectTrigger id="specimenType" className={`mt-1 h-9 ${errors.specimenType ? "border-destructive focus-visible:ring-destructive" : ""}`}>
-                    <SelectValue placeholder="Select specimen type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Buccal swab">Buccal swab</SelectItem>
-                    <SelectItem value="Saliva">Saliva</SelectItem>
-                    <SelectItem value="Blood (EDTA)">Blood (EDTA)</SelectItem>
-                    <SelectItem value="Blood (Heparin)">Blood (Heparin)</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+                  placeholder="e.g. Buccal swab"
+                  className={`mt-1 h-9 ${errors.specimenType ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                />
                 {errors.specimenType && (
                   <p className="text-[11px] text-destructive mt-1 font-medium">{errors.specimenType}</p>
                 )}
@@ -563,33 +552,6 @@ export const AddEditSpecimen = () => {
                 {errors.received && (
                   <p className="text-[11px] text-destructive mt-1 font-medium">{errors.received}</p>
                 )}
-              </div>
-
-              <div>
-                <Label htmlFor="reported" className="text-xs font-semibold text-foreground">
-                  Reported Date
-                </Label>
-                <Input
-                  id="reported"
-                  type="text"
-                  value={formData.reported}
-                  onChange={(e) => handleChange("reported", e.target.value)}
-                  placeholder="MM/DD/YYYY"
-                  className="mt-1 h-9"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="collectionMethodCode" className="text-xs font-semibold text-foreground">
-                  Collection Method Code
-                </Label>
-                <Input
-                  id="collectionMethodCode"
-                  value={formData.collectionMethodCode}
-                  onChange={(e) => handleChange("collectionMethodCode", e.target.value)}
-                  placeholder="e.g. 1733104001"
-                  className="mt-1 h-9"
-                />
               </div>
             </CardContent>
           </Card>
