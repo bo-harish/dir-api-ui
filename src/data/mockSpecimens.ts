@@ -3,6 +3,7 @@ export interface PrescribedMedication {
   name: string;
   sig: string;
   dosage: string;
+  strength?: string;
   formulation?: string;
 }
 
@@ -23,10 +24,18 @@ export interface Specimen {
   mrn: string;
   collectionMethodCode: string;
   collectionMethodLabel: string;
+  specimenType?: string;
+  panelName?: string;
+  reportTitle?: string;
   providerTitle: string;
   provider: string;
   providerNPI: string;
   facilityAddress: string;
+  facilityAddressLine1?: string;
+  facilityCity?: string;
+  facilityState?: string;
+  facilityCountry?: string;
+  facilityZip?: string;
   currentMedicationsList: string;
   currentMedicationsModelName: string;
   currentMedicationsReason: string;

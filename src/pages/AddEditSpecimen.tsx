@@ -49,6 +49,9 @@ export const AddEditSpecimen = () => {
     // Specimen & Tracking
     lcId: "",
     specimenId: "",
+    panelName: "Cardiology Panel",
+    reportTitle: "Pharmacogenomics (PGx) Test Report",
+    specimenType: "Buccal swab",
     status: "New",
     collected: "",
     received: "",
@@ -69,6 +72,11 @@ export const AddEditSpecimen = () => {
     provider: "",
     providerNPI: "",
     facility: "Recovery Unplugged",
+    facilityAddressLine1: "1 Sweet Lane, Suite T",
+    facilityCity: "Downtown",
+    facilityState: "NE",
+    facilityCountry: "USA",
+    facilityZip: "00045",
     facilityAddress: "1 Sweet Lane, Suite T, Downtown, NE 00045",
     providerState: "NE",
 
@@ -105,6 +113,9 @@ export const AddEditSpecimen = () => {
       setFormData({
         lcId: existingSpecimen.lcId || "",
         specimenId: existingSpecimen.specimenId || "",
+        panelName: existingSpecimen.panelName || "Cardiology Panel",
+        reportTitle: existingSpecimen.reportTitle || "Pharmacogenomics (PGx) Test Report",
+        specimenType: existingSpecimen.specimenType || existingSpecimen.collectionMethodLabel || "Buccal swab",
         status: existingSpecimen.status || "New",
         collected: existingSpecimen.collected || "",
         received: existingSpecimen.received || "",
@@ -123,6 +134,11 @@ export const AddEditSpecimen = () => {
         provider: existingSpecimen.provider || "",
         providerNPI: existingSpecimen.providerNPI || "",
         facility: existingSpecimen.facility || "Recovery Unplugged",
+        facilityAddressLine1: existingSpecimen.facilityAddressLine1 || existingSpecimen.facilityAddress?.split(",")[0]?.trim() || "1 Sweet Lane, Suite T",
+        facilityCity: existingSpecimen.facilityCity || "Downtown",
+        facilityState: existingSpecimen.facilityState || existingSpecimen.providerState || "NE",
+        facilityCountry: existingSpecimen.facilityCountry || "USA",
+        facilityZip: existingSpecimen.facilityZip || "00045",
         facilityAddress: existingSpecimen.facilityAddress || "",
         providerState: existingSpecimen.providerState || "NE",
 
@@ -209,15 +225,106 @@ export const AddEditSpecimen = () => {
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!formData.specimenId.trim()) {
-      errs.specimenId = "Specimen ID is required";
+
+    // 1. PanelName
+    if (!formData.panelName.trim()) {
+      errs.panelName = "Panel Name is required";
     }
+
+    // 2. ReportTitle
+    if (!formData.reportTitle.trim()) {
+      errs.reportTitle = "Report Title is required";
+    }
+
+    // 3. PatientFName
     if (!formData.patientFirstName.trim()) {
       errs.patientFirstName = "Patient First Name is required";
     }
+
+    // 4. PatientLName
     if (!formData.patientLastName.trim()) {
       errs.patientLastName = "Patient Last Name is required";
     }
+
+    // 5. PatientDOB
+    if (!formData.dateOfBirth.trim()) {
+      errs.dateOfBirth = "Date of Birth is required";
+    }
+
+    // 6. PatientGender
+    if (!formData.gender.trim()) {
+      errs.gender = "Patient Gender is required";
+    }
+
+    // 7. SpecimenId
+    if (!formData.specimenId.trim()) {
+      errs.specimenId = "Specimen ID is required";
+    }
+
+    // 8. SpecimenType
+    if (!formData.specimenType.trim()) {
+      errs.specimenType = "Specimen Type is required";
+    }
+
+    // 9. SpecimenCollectedDate
+    if (!formData.collected.trim()) {
+      errs.collected = "Collected Date is required";
+    }
+
+    // 10. SpecimenReceivedDate
+    if (!formData.received.trim()) {
+      errs.received = "Received Date is required";
+    }
+
+    // 11. ProviderName
+    if (!formData.provider.trim()) {
+      errs.provider = "Provider Name is required";
+    }
+
+    // 12. FacilityName
+    if (!formData.facility.trim()) {
+      errs.facility = "Facility Name is required";
+    }
+
+    // 13. FacilityAddressLine1
+    if (!formData.facilityAddressLine1.trim()) {
+      errs.facilityAddressLine1 = "Facility Address Line 1 is required";
+    }
+
+    // 14. FacilityCity
+    if (!formData.facilityCity.trim()) {
+      errs.facilityCity = "Facility City is required";
+    }
+
+    // 15. FacilityState
+    if (!formData.facilityState.trim()) {
+      errs.facilityState = "Facility State is required";
+    }
+
+    // 16. FacilityCountry
+    if (!formData.facilityCountry.trim()) {
+      errs.facilityCountry = "Facility Country is required";
+    }
+
+    // 17. FacilityZip
+    if (!formData.facilityZip.trim()) {
+      errs.facilityZip = "Facility Zip is required";
+    }
+
+    // 18 & 19. DrugName & Strength
+    if (prescribedMedications.length === 0) {
+      errs.medications = "At least one medication is required (Drug Name & Strength are mandatory)";
+    } else {
+      const hasMissingDrug = prescribedMedications.some((m) => !m.name.trim());
+      const hasMissingStrength = prescribedMedications.some((m) => !(m.dosage?.trim() || m.strength?.trim()));
+      if (hasMissingDrug) {
+        errs.drugName = "Drug Name is required for all medications";
+      }
+      if (hasMissingStrength) {
+        errs.strength = "Strength is required for all medications";
+      }
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -231,9 +338,16 @@ export const AddEditSpecimen = () => {
 
     setIsSubmitting(true);
 
+    const derivedAddress = `${formData.facilityAddressLine1}, ${formData.facilityCity}, ${formData.facilityState} ${formData.facilityZip}, ${formData.facilityCountry}`;
+
     const payload: Partial<Specimen> = {
       ...formData,
-      prescribedMedications,
+      facilityAddress: derivedAddress,
+      collectionMethodLabel: formData.specimenType,
+      prescribedMedications: prescribedMedications.map((m) => ({
+        ...m,
+        strength: m.dosage || m.strength || "",
+      })),
       currentMedicationsList: prescribedMedications.map((m) => m.name).join(", "),
     };
 
@@ -335,7 +449,7 @@ export const AddEditSpecimen = () => {
                 <CardTitle className="text-base font-semibold">Specimen & Order Information</CardTitle>
               </div>
               <CardDescription>
-                Primary specimen identifier, collection and reporting dates, and collection method.
+                Primary specimen identifier, panel name, report title, dates, and specimen type.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -356,8 +470,70 @@ export const AddEditSpecimen = () => {
               </div>
 
               <div>
+                <Label htmlFor="panelName" className="text-xs font-semibold text-foreground">
+                  Panel Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="panelName"
+                  value={formData.panelName}
+                  onChange={(e) => handleChange("panelName", e.target.value)}
+                  placeholder="e.g. Cardiology Panel"
+                  className={`mt-1 h-9 ${errors.panelName ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                />
+                {errors.panelName && (
+                  <p className="text-[11px] text-destructive mt-1 font-medium">{errors.panelName}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="reportTitle" className="text-xs font-semibold text-foreground">
+                  Report Title <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="reportTitle"
+                  value={formData.reportTitle}
+                  onChange={(e) => handleChange("reportTitle", e.target.value)}
+                  placeholder="e.g. Pharmacogenomics (PGx) Test Report"
+                  className={`mt-1 h-9 ${errors.reportTitle ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                />
+                {errors.reportTitle && (
+                  <p className="text-[11px] text-destructive mt-1 font-medium">{errors.reportTitle}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="specimenType" className="text-xs font-semibold text-foreground">
+                  Specimen Type <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={formData.specimenType}
+                  onValueChange={(val) => {
+                    handleChange("specimenType", val);
+                    handleChange("collectionMethodLabel", val);
+                    if (val === "Buccal swab") handleChange("collectionMethodCode", "1733104001");
+                    else if (val === "Saliva") handleChange("collectionMethodCode", "1733104002");
+                    else if (val === "Blood (EDTA)") handleChange("collectionMethodCode", "1733104003");
+                  }}
+                >
+                  <SelectTrigger id="specimenType" className={`mt-1 h-9 ${errors.specimenType ? "border-destructive focus-visible:ring-destructive" : ""}`}>
+                    <SelectValue placeholder="Select specimen type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Buccal swab">Buccal swab</SelectItem>
+                    <SelectItem value="Saliva">Saliva</SelectItem>
+                    <SelectItem value="Blood (EDTA)">Blood (EDTA)</SelectItem>
+                    <SelectItem value="Blood (Heparin)">Blood (Heparin)</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.specimenType && (
+                  <p className="text-[11px] text-destructive mt-1 font-medium">{errors.specimenType}</p>
+                )}
+              </div>
+
+              <div>
                 <Label htmlFor="collected" className="text-xs font-semibold text-foreground">
-                  Collected Date
+                  Specimen Collected Date <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="collected"
@@ -365,13 +541,16 @@ export const AddEditSpecimen = () => {
                   value={formData.collected}
                   onChange={(e) => handleChange("collected", e.target.value)}
                   placeholder="MM/DD/YYYY"
-                  className="mt-1 h-9"
+                  className={`mt-1 h-9 ${errors.collected ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 />
+                {errors.collected && (
+                  <p className="text-[11px] text-destructive mt-1 font-medium">{errors.collected}</p>
+                )}
               </div>
 
               <div>
                 <Label htmlFor="received" className="text-xs font-semibold text-foreground">
-                  Received Date
+                  Specimen Received Date <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="received"
@@ -379,8 +558,11 @@ export const AddEditSpecimen = () => {
                   value={formData.received}
                   onChange={(e) => handleChange("received", e.target.value)}
                   placeholder="MM/DD/YYYY"
-                  className="mt-1 h-9"
+                  className={`mt-1 h-9 ${errors.received ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 />
+                {errors.received && (
+                  <p className="text-[11px] text-destructive mt-1 font-medium">{errors.received}</p>
+                )}
               </div>
 
               <div>
@@ -395,32 +577,6 @@ export const AddEditSpecimen = () => {
                   placeholder="MM/DD/YYYY"
                   className="mt-1 h-9"
                 />
-              </div>
-
-              <div>
-                <Label htmlFor="collectionMethodLabel" className="text-xs font-semibold text-foreground">
-                  Collection Method Label
-                </Label>
-                <Select
-                  value={formData.collectionMethodLabel}
-                  onValueChange={(val) => {
-                    handleChange("collectionMethodLabel", val);
-                    if (val === "Buccal swab") handleChange("collectionMethodCode", "1733104001");
-                    else if (val === "Saliva") handleChange("collectionMethodCode", "1733104002");
-                    else if (val === "Blood (EDTA)") handleChange("collectionMethodCode", "1733104003");
-                  }}
-                >
-                  <SelectTrigger id="collectionMethodLabel" className="mt-1 h-9">
-                    <SelectValue placeholder="Select collection method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Buccal swab">Buccal swab</SelectItem>
-                    <SelectItem value="Saliva">Saliva</SelectItem>
-                    <SelectItem value="Blood (EDTA)">Blood (EDTA)</SelectItem>
-                    <SelectItem value="Blood (Heparin)">Blood (Heparin)</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               <div>
@@ -484,7 +640,7 @@ export const AddEditSpecimen = () => {
 
               <div>
                 <Label htmlFor="dateOfBirth" className="text-xs font-semibold text-foreground">
-                  Date of Birth
+                  Patient Date of Birth <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="dateOfBirth"
@@ -492,16 +648,19 @@ export const AddEditSpecimen = () => {
                   value={formData.dateOfBirth}
                   onChange={(e) => handleChange("dateOfBirth", e.target.value)}
                   placeholder="MM/DD/YYYY"
-                  className="mt-1 h-9"
+                  className={`mt-1 h-9 ${errors.dateOfBirth ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 />
+                {errors.dateOfBirth && (
+                  <p className="text-[11px] text-destructive mt-1 font-medium">{errors.dateOfBirth}</p>
+                )}
               </div>
 
               <div>
                 <Label htmlFor="gender" className="text-xs font-semibold text-foreground">
-                  Gender
+                  Patient Gender <span className="text-destructive">*</span>
                 </Label>
                 <Select value={formData.gender} onValueChange={(val) => handleChange("gender", val)}>
-                  <SelectTrigger id="gender" className="mt-1 h-9">
+                  <SelectTrigger id="gender" className={`mt-1 h-9 ${errors.gender ? "border-destructive focus-visible:ring-destructive" : ""}`}>
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
                   <SelectContent>
@@ -511,6 +670,9 @@ export const AddEditSpecimen = () => {
                     <SelectItem value="U">Unknown (U)</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.gender && (
+                  <p className="text-[11px] text-destructive mt-1 font-medium">{errors.gender}</p>
+                )}
               </div>
 
               <div>
@@ -561,6 +723,22 @@ export const AddEditSpecimen = () => {
             </CardHeader>
             <CardContent className="pt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
+                <Label htmlFor="provider" className="text-xs font-semibold text-foreground">
+                  Provider Full Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="provider"
+                  value={formData.provider}
+                  onChange={(e) => handleChange("provider", e.target.value)}
+                  placeholder="e.g. JAANKI BHAKTA"
+                  className={`mt-1 h-9 ${errors.provider ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                />
+                {errors.provider && (
+                  <p className="text-[11px] text-destructive mt-1 font-medium">{errors.provider}</p>
+                )}
+              </div>
+
+              <div>
                 <Label htmlFor="providerTitle" className="text-xs font-semibold text-foreground">
                   Provider Title
                 </Label>
@@ -579,19 +757,6 @@ export const AddEditSpecimen = () => {
               </div>
 
               <div>
-                <Label htmlFor="provider" className="text-xs font-semibold text-foreground">
-                  Provider Full Name
-                </Label>
-                <Input
-                  id="provider"
-                  value={formData.provider}
-                  onChange={(e) => handleChange("provider", e.target.value)}
-                  placeholder="e.g. JAANKI BHAKTA"
-                  className="mt-1 h-9"
-                />
-              </div>
-
-              <div>
                 <Label htmlFor="providerNPI" className="text-xs font-semibold text-foreground">
                   Provider NPI
                 </Label>
@@ -607,36 +772,58 @@ export const AddEditSpecimen = () => {
 
               <div>
                 <Label htmlFor="facility" className="text-xs font-semibold text-foreground">
-                  Facility Name
+                  Facility Name <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="facility"
                   value={formData.facility}
                   onChange={(e) => handleChange("facility", e.target.value)}
                   placeholder="e.g. Recovery Unplugged"
-                  className="mt-1 h-9"
+                  className={`mt-1 h-9 ${errors.facility ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 />
+                {errors.facility && (
+                  <p className="text-[11px] text-destructive mt-1 font-medium">{errors.facility}</p>
+                )}
               </div>
 
               <div>
-                <Label htmlFor="facilityAddress" className="text-xs font-semibold text-foreground">
-                  Provider Location / Facility Address
+                <Label htmlFor="facilityAddressLine1" className="text-xs font-semibold text-foreground">
+                  Facility Address Line 1 <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="facilityAddress"
-                  value={formData.facilityAddress}
-                  onChange={(e) => handleChange("facilityAddress", e.target.value)}
-                  placeholder="Street Address, City, State ZIP"
-                  className="mt-1 h-9"
+                  id="facilityAddressLine1"
+                  value={formData.facilityAddressLine1}
+                  onChange={(e) => handleChange("facilityAddressLine1", e.target.value)}
+                  placeholder="Street Address, Suite / Room"
+                  className={`mt-1 h-9 ${errors.facilityAddressLine1 ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 />
+                {errors.facilityAddressLine1 && (
+                  <p className="text-[11px] text-destructive mt-1 font-medium">{errors.facilityAddressLine1}</p>
+                )}
               </div>
 
               <div>
-                <Label htmlFor="providerState" className="text-xs font-semibold text-foreground">
-                  Provider State
+                <Label htmlFor="facilityCity" className="text-xs font-semibold text-foreground">
+                  Facility City <span className="text-destructive">*</span>
                 </Label>
-                <Select value={formData.providerState} onValueChange={(val) => handleChange("providerState", val)}>
-                  <SelectTrigger id="providerState" className="mt-1 h-9">
+                <Input
+                  id="facilityCity"
+                  value={formData.facilityCity}
+                  onChange={(e) => handleChange("facilityCity", e.target.value)}
+                  placeholder="City"
+                  className={`mt-1 h-9 ${errors.facilityCity ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                />
+                {errors.facilityCity && (
+                  <p className="text-[11px] text-destructive mt-1 font-medium">{errors.facilityCity}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="facilityState" className="text-xs font-semibold text-foreground">
+                  Facility State <span className="text-destructive">*</span>
+                </Label>
+                <Select value={formData.facilityState} onValueChange={(val) => { handleChange("facilityState", val); handleChange("providerState", val); }}>
+                  <SelectTrigger id="facilityState" className={`mt-1 h-9 ${errors.facilityState ? "border-destructive focus-visible:ring-destructive" : ""}`}>
                     <SelectValue placeholder="Select state" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
@@ -645,6 +832,41 @@ export const AddEditSpecimen = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.facilityState && (
+                  <p className="text-[11px] text-destructive mt-1 font-medium">{errors.facilityState}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="facilityCountry" className="text-xs font-semibold text-foreground">
+                  Facility Country <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="facilityCountry"
+                  value={formData.facilityCountry}
+                  onChange={(e) => handleChange("facilityCountry", e.target.value)}
+                  placeholder="e.g. USA"
+                  className={`mt-1 h-9 ${errors.facilityCountry ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                />
+                {errors.facilityCountry && (
+                  <p className="text-[11px] text-destructive mt-1 font-medium">{errors.facilityCountry}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="facilityZip" className="text-xs font-semibold text-foreground">
+                  Facility Zip <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="facilityZip"
+                  value={formData.facilityZip}
+                  onChange={(e) => handleChange("facilityZip", e.target.value)}
+                  placeholder="Zip / Postal Code"
+                  className={`mt-1 h-9 ${errors.facilityZip ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                />
+                {errors.facilityZip && (
+                  <p className="text-[11px] text-destructive mt-1 font-medium">{errors.facilityZip}</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -657,10 +879,18 @@ export const AddEditSpecimen = () => {
                 <CardTitle className="text-base font-semibold">Current Medications & Clinical Information</CardTitle>
               </div>
               <CardDescription>
-                Search DrugBank to manage prescribed medications, sig, and dosage for PGx testing.
+                Search DrugBank to manage prescribed medications, sig, and strength for PGx testing.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-5 space-y-4">
+              {/* Errors if missing required medications */}
+              {(errors.medications || errors.drugName || errors.strength) && (
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-xs text-destructive flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span>{errors.medications || errors.drugName || errors.strength}</span>
+                </div>
+              )}
+
               {/* Search Mode - Image 1 */}
               {isSearchingDrug && (
                 <div className="space-y-2">
@@ -739,13 +969,23 @@ export const AddEditSpecimen = () => {
               {/* Prescribed Medications Rows - Image 2 */}
               {prescribedMedications.length > 0 ? (
                 <div className="space-y-2.5">
+                  <div className="hidden sm:flex items-center gap-3 px-3.5 text-xs font-semibold text-muted-foreground">
+                    <div className="sm:w-52">
+                      Drug Name <span className="text-destructive">*</span>
+                    </div>
+                    <div className="flex-1">Sig</div>
+                    <div className="sm:w-48">
+                      Strength <span className="text-destructive">*</span>
+                    </div>
+                    <div className="w-9 text-center">Action</div>
+                  </div>
                   {prescribedMedications.map((med) => (
                     <div
                       key={med.id}
                       className="flex flex-col sm:flex-row sm:items-center gap-3 p-3.5 rounded-lg border border-border bg-background shadow-xs hover:border-border/80 transition-all"
                     >
                       <div className="sm:w-52 font-medium text-sm text-foreground truncate">
-                        {med.name}
+                        {med.name || <span className="text-destructive text-xs">Drug Name required *</span>}
                       </div>
                       <div className="flex-1">
                         <Input
@@ -759,8 +999,8 @@ export const AddEditSpecimen = () => {
                         <Input
                           value={med.dosage}
                           onChange={(e) => handleUpdateMed(med.id, "dosage", e.target.value)}
-                          placeholder="5 mg/l"
-                          className="h-10 text-sm"
+                          placeholder="Strength (e.g. 5 mg/l)"
+                          className={`h-10 text-sm ${!med.dosage?.trim() ? "border-destructive focus-visible:ring-destructive" : ""}`}
                         />
                       </div>
                       <button
@@ -776,8 +1016,8 @@ export const AddEditSpecimen = () => {
                 </div>
               ) : (
                 !isSearchingDrug && (
-                  <div className="py-6 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
-                    No medications prescribed yet. Click below to search and add medications from DrugBank.
+                  <div className={`py-6 text-center text-sm border border-dashed rounded-lg ${errors.medications ? "border-destructive text-destructive bg-destructive/5" : "border-border text-muted-foreground"}`}>
+                    No medications prescribed yet. Click "+ Add Medication" below to search and add from DrugBank. <span className="text-destructive font-medium">* (Drug Name & Strength required)</span>
                   </div>
                 )
               )}
