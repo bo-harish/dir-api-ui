@@ -43,10 +43,10 @@ const IMPORT_CONFIG: Record<
 > = {
   specimen: {
     title: "Import Specimen Batch",
-    subtitle: "Upload a CSV or Excel sheet containing patient and specimen intake records.",
-    formats: ".csv, .xlsx, .tsv",
-    extensions: [".csv", ".xlsx", ".tsv"],
-    sampleTemplate: "specimen_template.csv",
+    subtitle: "Upload an Excel sheet (.xlsx) containing patient and specimen intake records.",
+    formats: ".xlsx",
+    extensions: [".xlsx"],
+    sampleTemplate: "specimen_template.xlsx",
     icon: UploadCloud,
     iconColor: "text-primary",
     badgeBg: "bg-primary/10",
@@ -54,8 +54,8 @@ const IMPORT_CONFIG: Record<
   cnv: {
     title: "Import CNV Results",
     subtitle: "Copy Number Variation data for chromosomal segments and structural variants.",
-    formats: ".csv, .tsv",
-    extensions: [".csv", ".tsv"],
+    formats: ".csv, .xlsx",
+    extensions: [".csv", ".xlsx"],
     sampleTemplate: "cnv_results_template.csv",
     icon: FileSpreadsheet,
     iconColor: "text-emerald-600 dark:text-emerald-400",
@@ -64,8 +64,8 @@ const IMPORT_CONFIG: Record<
   snp: {
     title: "Import SNP Results",
     subtitle: "Single Nucleotide Polymorphism calls and genotyping array results.",
-    formats: ".csv, .tsv, .xlsx",
-    extensions: [".csv", ".tsv", ".xlsx"],
+    formats: ".csv, .xlsx",
+    extensions: [".csv", ".xlsx"],
     sampleTemplate: "snp_results_template.xlsx",
     icon: Dna,
     iconColor: "text-teal-600 dark:text-teal-400",
@@ -74,8 +74,8 @@ const IMPORT_CONFIG: Record<
   slc6a4: {
     title: "Import SLC6A4 Results",
     subtitle: "Serotonin transporter polymorphism and targeted assay result files.",
-    formats: ".csv, .tsv",
-    extensions: [".csv", ".tsv"],
+    formats: ".csv, .xlsx",
+    extensions: [".csv", ".xlsx"],
     sampleTemplate: "slc6a4_assay_template.csv",
     icon: FileCheck2,
     iconColor: "text-blue-600 dark:text-blue-400",

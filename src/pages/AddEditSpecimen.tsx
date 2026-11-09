@@ -64,7 +64,6 @@ export const AddEditSpecimen = () => {
     patientLastName: "",
     dateOfBirth: "",
     gender: "F",
-    race: "Not Specified",
     mrn: "",
 
     // Provider & Facility
@@ -73,6 +72,7 @@ export const AddEditSpecimen = () => {
     providerNPI: "",
     facility: "Recovery Unplugged",
     facilityAddressLine1: "1 Sweet Lane, Suite T",
+    facilityAddressLine2: "",
     facilityCity: "Downtown",
     facilityState: "NE",
     facilityCountry: "USA",
@@ -127,7 +127,6 @@ export const AddEditSpecimen = () => {
         patientLastName: existingSpecimen.patientLastName || "",
         dateOfBirth: existingSpecimen.dateOfBirth || "",
         gender: existingSpecimen.gender || "F",
-        race: existingSpecimen.race || "Not Specified",
         mrn: existingSpecimen.mrn || "",
 
         providerTitle: existingSpecimen.providerTitle || "Dr.",
@@ -135,6 +134,7 @@ export const AddEditSpecimen = () => {
         providerNPI: existingSpecimen.providerNPI || "",
         facility: existingSpecimen.facility || "Recovery Unplugged",
         facilityAddressLine1: existingSpecimen.facilityAddressLine1 || existingSpecimen.facilityAddress?.split(",")[0]?.trim() || "1 Sweet Lane, Suite T",
+        facilityAddressLine2: existingSpecimen.facilityAddressLine2 || "",
         facilityCity: existingSpecimen.facilityCity || "Downtown",
         facilityState: existingSpecimen.facilityState || existingSpecimen.providerState || "NE",
         facilityCountry: existingSpecimen.facilityCountry || "USA",
@@ -338,7 +338,14 @@ export const AddEditSpecimen = () => {
 
     setIsSubmitting(true);
 
-    const derivedAddress = `${formData.facilityAddressLine1}, ${formData.facilityCity}, ${formData.facilityState} ${formData.facilityZip}, ${formData.facilityCountry}`;
+    const addressParts = [
+      formData.facilityAddressLine1,
+      formData.facilityAddressLine2,
+      formData.facilityCity,
+      `${formData.facilityState} ${formData.facilityZip}`.trim(),
+      formData.facilityCountry,
+    ].filter(Boolean);
+    const derivedAddress = addressParts.join(", ");
 
     const payload: Partial<Specimen> = {
       ...formData,
@@ -638,26 +645,6 @@ export const AddEditSpecimen = () => {
               </div>
 
               <div>
-                <Label htmlFor="race" className="text-xs font-semibold text-foreground">
-                  Race
-                </Label>
-                <Select value={formData.race} onValueChange={(val) => handleChange("race", val)}>
-                  <SelectTrigger id="race" className="mt-1 h-9">
-                    <SelectValue placeholder="Select race" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Caucasian">Caucasian</SelectItem>
-                    <SelectItem value="African American">African American</SelectItem>
-                    <SelectItem value="Asian">Asian</SelectItem>
-                    <SelectItem value="Hispanic">Hispanic</SelectItem>
-                    <SelectItem value="Native American">Native American</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                    <SelectItem value="Not Specified">Not Specified</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
                 <Label htmlFor="mrn" className="text-xs font-semibold text-foreground">
                   MRN (Medical Record Number)
                 </Label>
@@ -762,6 +749,19 @@ export const AddEditSpecimen = () => {
                 {errors.facilityAddressLine1 && (
                   <p className="text-[11px] text-destructive mt-1 font-medium">{errors.facilityAddressLine1}</p>
                 )}
+              </div>
+
+              <div>
+                <Label htmlFor="facilityAddressLine2" className="text-xs font-semibold text-foreground">
+                  Facility Address Line 2
+                </Label>
+                <Input
+                  id="facilityAddressLine2"
+                  value={formData.facilityAddressLine2}
+                  onChange={(e) => handleChange("facilityAddressLine2", e.target.value)}
+                  placeholder="Suite, Apt, Floor, Unit (Optional)"
+                  className="mt-1 h-9"
+                />
               </div>
 
               <div>
@@ -979,7 +979,7 @@ export const AddEditSpecimen = () => {
               ) : (
                 !isSearchingDrug && (
                   <div className={`py-6 text-center text-sm border border-dashed rounded-lg ${errors.medications ? "border-destructive text-destructive bg-destructive/5" : "border-border text-muted-foreground"}`}>
-                    No medications prescribed yet. Click "+ Add Medication" below to search and add from DrugBank. <span className="text-destructive font-medium">* (Drug Name & Strength required)</span>
+                    No medications prescribed yet. Click "+ Add Medication" below to search and add from DrugBank.
                   </div>
                 )
               )}

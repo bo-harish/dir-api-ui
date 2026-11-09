@@ -46,7 +46,10 @@ import {
   FileCode2,
   FileCheck2,
   ArrowUpRight,
+  Hourglass,
+  FileText,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,6 +61,7 @@ import LabHeader from "@/components/LabHeader";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ColumnSelector, DEFAULT_COLUMNS, ColumnDefinition } from "@/components/ColumnSelector";
 import { ImportModal, ImportType } from "@/components/ImportModal";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const LOCAL_STORAGE_KEY = "lab_user_table_columns_v5";
 const LOCAL_STORAGE_WIDTHS_KEY = "lab_user_column_widths_v1";
@@ -77,7 +81,6 @@ const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   providerState: 110,
   dateOfBirth: 110,
   gender: 90,
-  race: 110,
   mrn: 110,
   collectionMethodCode: 150,
   collectionMethodLabel: 160,
@@ -131,9 +134,10 @@ const getInitialColumns = (): ColumnDefinition[] => {
 
 const PAGE_SIZE = 10;
 
-type ReportFilter = "awaiting" | "released" | "all";
+type ReportFilter = "all" | "awaiting" | "pending" | "released";
 
-const getDisplayStatus = (_status: string, hasView: boolean) => {
+const getDisplayStatus = (status: string, hasView: boolean) => {
+  if (status?.toLowerCase() === "pending") return "Pending";
   if (hasView) return "Released";
   return "Awaiting Release";
 };
@@ -159,7 +163,8 @@ const emptyFilters: FilterState = {
 
 const LabUserDashboard = () => {
   const [search, setSearch] = useState("");
-  const [reportFilter, setReportFilter] = useState<ReportFilter>("awaiting");
+  const [reportFilter, setReportFilter] = useState<ReportFilter>("all");
+  const [selectedPendingIds, setSelectedPendingIds] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
@@ -170,7 +175,24 @@ const LabUserDashboard = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importType, setImportType] = useState<ImportType>("cnv");
   const navigate = useNavigate();
-  const { specimens } = useSpecimenContext();
+  const { specimens, updateSpecimen } = useSpecimenContext();
+
+  const handleGenerateReport = (specimen: Specimen) => {
+    toast.info(`Generating report for ${specimen.specimenId}...`);
+    setTimeout(() => {
+      updateSpecimen(specimen.id, {
+        status: "New",
+        hasDownload: true,
+        hasView: true,
+        reported: new Date().toLocaleDateString("en-US", {
+          month: "2-digit",
+          day: "2-digit",
+          year: "numeric",
+        }),
+      });
+      toast.success(`Report generated successfully for ${specimen.specimenId}!`);
+    }, 800);
+  };
 
   const handleOpenImport = (type: ImportType) => {
     setImportType(type);
@@ -290,7 +312,8 @@ const LabUserDashboard = () => {
       `${s.patientFirstName} ${s.patientLastName}`.toLowerCase().includes(search.toLowerCase())
     )
     .filter((s) => {
-      if (reportFilter === "awaiting") return !s.hasView;
+      if (reportFilter === "awaiting") return !s.hasView && s.status?.toLowerCase() !== "pending";
+      if (reportFilter === "pending") return s.status?.toLowerCase() === "pending";
       if (reportFilter === "released") return s.hasView;
       return true;
     });
@@ -298,9 +321,53 @@ const LabUserDashboard = () => {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  const pendingPageIds = paginated.map((s) => s.id);
+  const isAllPendingSelected =
+    pendingPageIds.length > 0 && pendingPageIds.every((id) => selectedPendingIds.includes(id));
+  const isSomePendingSelected =
+    selectedPendingIds.length > 0 && !isAllPendingSelected;
+
+  const handleSelectAllPending = (checked: boolean | "indeterminate") => {
+    if (checked === true) {
+      const next = Array.from(new Set([...selectedPendingIds, ...pendingPageIds]));
+      setSelectedPendingIds(next);
+    } else {
+      setSelectedPendingIds((prev) => prev.filter((id) => !pendingPageIds.includes(id)));
+    }
+  };
+
+  const handleToggleSelectPending = (id: string, checked: boolean) => {
+    setSelectedPendingIds((prev) =>
+      checked ? [...prev, id] : prev.filter((item) => item !== id)
+    );
+  };
+
+  const handleBulkGenerateReports = () => {
+    if (selectedPendingIds.length === 0) return;
+    const count = selectedPendingIds.length;
+    toast.info(`Generating reports for ${count} selected specimen(s)...`);
+    setTimeout(() => {
+      selectedPendingIds.forEach((id) => {
+        updateSpecimen(id, {
+          status: "New",
+          hasDownload: true,
+          hasView: true,
+          reported: new Date().toLocaleDateString("en-US", {
+            month: "2-digit",
+            day: "2-digit",
+            year: "numeric",
+          }),
+        });
+      });
+      toast.success(`Successfully generated reports for ${count} specimen(s)!`);
+      setSelectedPendingIds([]);
+    }, 900);
+  };
+
   const handleFilterChange = (filter: ReportFilter) => {
     setReportFilter(filter);
     setCurrentPage(1);
+    setSelectedPendingIds([]);
   };
 
   const updateDraft = (key: keyof FilterState, value: string) =>
@@ -345,8 +412,16 @@ const LabUserDashboard = () => {
             {specimen.specimenId}
           </span>
         );
-      case "reportStatus":
-        return getDisplayStatus(specimen.status, specimen.hasView);
+      case "reportStatus": {
+        const displayStatus = getDisplayStatus(specimen.status, specimen.hasView);
+        if (displayStatus === "Pending") {
+          return <span className="text-amber-600 dark:text-amber-400 font-medium">{displayStatus}</span>;
+        }
+        if (displayStatus === "Released") {
+          return <span className="text-emerald-600 dark:text-emerald-400 font-medium">{displayStatus}</span>;
+        }
+        return <span className="text-muted-foreground font-medium">{displayStatus}</span>;
+      }
       case "collected":
         return specimen.collected;
       case "received":
@@ -365,8 +440,6 @@ const LabUserDashboard = () => {
         return specimen.dateOfBirth;
       case "gender":
         return specimen.gender;
-      case "race":
-        return specimen.race || "Not Specified";
       case "mrn":
         return specimen.mrn;
       case "patientFirstName":
@@ -392,14 +465,30 @@ const LabUserDashboard = () => {
       case "lastUpdated":
         return specimen.lastUpdated;
       case "downloadPdf":
+        if (specimen.status?.toLowerCase() === "pending") {
+          return (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-[12px] px-2.5 font-medium cursor-pointer text-primary border-primary/40 hover:bg-primary/10 gap-1.5"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleGenerateReport(specimen);
+              }}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              Generate report
+            </Button>
+          );
+        }
         return specimen.hasDownload ? (
             <button className="text-link flex items-center gap-1 text-[13px] font-medium">
               <Download className="h-3.5 w-3.5" />
               Download
             </button>
             ) : null;
-            case "exception":
-            return [0, 2, 5, 7].includes(idx) ? null : (
+      case "exception":
+        return [0, 2, 5, 7].includes(idx) ? null : (
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -414,31 +503,39 @@ const LabUserDashboard = () => {
                 Drug(s) D1,S2 could not be resolved to a valid DrugBank ID. As a result, all requested medications in this request will be excluded from the PDF report.
               </TooltipContent>
             </Tooltip>
-            );
-            case "action":
-            return (
-              <div className="flex items-center gap-1.5">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-[12px] px-2.5 font-medium cursor-pointer hover:border-primary/50"
-                  onClick={() => navigate(`/lab-user/specimen/${specimen.id}/edit`)}
-                >
-                  EDIT
-                </Button>
-                <Button variant="outline" size="sm" className="h-7 text-[12px] px-2.5 cursor-pointer">
-                  RELEASE
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-[12px] px-2.5 cursor-pointer"
-                  onClick={() => navigate(`/lab-user/specimen/${specimen.id}/report`)}
-                >
-                  VIEW
-                </Button>
-              </div>
-            );
+        );
+      case "action": {
+        const isPending = specimen.status?.toLowerCase() === "pending";
+        return (
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[12px] px-2.5 font-medium cursor-pointer hover:border-primary/50"
+              onClick={() => navigate(`/lab-user/specimen/${specimen.id}/edit`)}
+            >
+              EDIT
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[12px] px-2.5 cursor-pointer"
+              disabled={isPending}
+            >
+              RELEASE
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[12px] px-2.5 cursor-pointer"
+              onClick={() => navigate(`/lab-user/specimen/${specimen.id}/report`)}
+              disabled={isPending}
+            >
+              VIEW
+            </Button>
+          </div>
+        );
+      }
             default:
             return null;
     }
@@ -589,6 +686,15 @@ const LabUserDashboard = () => {
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-2">
                     <Button
+                      variant={reportFilter === "all" ? "default" : "outline"}
+                      size="sm"
+                      className={`h-9 ${reportFilter === "all" ? "bg-primary text-primary-foreground" : ""}`}
+                      onClick={() => handleFilterChange("all")}
+                    >
+                      <Files className="h-4 w-4" />
+                      All Reports
+                    </Button>
+                    <Button
                       variant={reportFilter === "awaiting" ? "default" : "outline"}
                       size="sm"
                       className={`h-9 ${reportFilter === "awaiting" ? "bg-primary text-primary-foreground" : ""}`}
@@ -596,6 +702,15 @@ const LabUserDashboard = () => {
                     >
                       <Clock className="h-4 w-4" />
                       Reports Awaiting Release
+                    </Button>
+                    <Button
+                      variant={reportFilter === "pending" ? "default" : "outline"}
+                      size="sm"
+                      className={`h-9 ${reportFilter === "pending" ? "bg-primary text-primary-foreground" : ""}`}
+                      onClick={() => handleFilterChange("pending")}
+                    >
+                      <Hourglass className="h-4 w-4" />
+                      Pending Reports
                     </Button>
                     <Button
                       variant={reportFilter === "released" ? "default" : "outline"}
@@ -606,18 +721,31 @@ const LabUserDashboard = () => {
                       <CheckCircle2 className="h-4 w-4" />
                       Released Reports
                     </Button>
-                    <Button
-                      variant={reportFilter === "all" ? "default" : "outline"}
-                      size="sm"
-                      className={`h-9 ${reportFilter === "all" ? "bg-primary text-primary-foreground" : ""}`}
-                      onClick={() => handleFilterChange("all")}
-                    >
-                      <Files className="h-4 w-4" />
-                      All Reports
-                    </Button>
                   </div>
 
                   <div className="flex items-center gap-2.5">
+                    {reportFilter === "pending" && (
+                      <Button
+                        variant={selectedPendingIds.length > 0 ? "default" : "outline"}
+                        size="sm"
+                        disabled={selectedPendingIds.length === 0}
+                        onClick={handleBulkGenerateReports}
+                        className={`h-9 gap-1.5 font-medium transition-all ${
+                          selectedPendingIds.length > 0
+                            ? "bg-primary text-primary-foreground shadow-sm cursor-pointer"
+                            : "opacity-50 cursor-not-allowed text-muted-foreground"
+                        }`}
+                      >
+                        <FileText className="h-4 w-4" />
+                        Generate Reports
+                        {selectedPendingIds.length > 0 && (
+                          <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[11px] bg-primary-foreground/20 text-primary-foreground font-semibold">
+                            {selectedPendingIds.length}
+                          </span>
+                        )}
+                      </Button>
+                    )}
+
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -646,7 +774,7 @@ const LabUserDashboard = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-semibold text-foreground">Import Specimen Batch</span>
-                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv / .xlsx</span>
+                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.xlsx</span>
                             </div>
                             <p className="text-[11px] text-muted-foreground truncate mt-0.5">
                               Upload batch manifest file
@@ -712,7 +840,7 @@ const LabUserDashboard = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-semibold text-foreground">Import CNV</span>
-                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv</span>
+                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv / .xlsx</span>
                             </div>
                             <p className="text-[11px] text-muted-foreground truncate mt-0.5">
                               Copy Number Variation data
@@ -730,7 +858,7 @@ const LabUserDashboard = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-semibold text-foreground">Import SNP</span>
-                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.xlsx</span>
+                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv / .xlsx</span>
                             </div>
                             <p className="text-[11px] text-muted-foreground truncate mt-0.5">
                               Single Nucleotide Polymorphism
@@ -748,7 +876,7 @@ const LabUserDashboard = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-semibold text-foreground">Import SLC6A4</span>
-                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.tsv</span>
+                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv / .xlsx</span>
                             </div>
                             <p className="text-[11px] text-muted-foreground truncate mt-0.5">
                               Targeted genotyping assays
@@ -865,6 +993,19 @@ const LabUserDashboard = () => {
                   <Table className="w-max min-w-full">
                     <TableHeader>
                       <TableRow className="bg-table-header">
+                        {reportFilter === "pending" && (
+                          <TableHead
+                            style={{ width: "44px", minWidth: "44px" }}
+                            className="text-center py-2 px-3 align-middle select-none"
+                          >
+                            <Checkbox
+                              checked={isAllPendingSelected ? true : isSomePendingSelected ? "indeterminate" : false}
+                              onCheckedChange={handleSelectAllPending}
+                              aria-label="Select all pending specimens"
+                              className="cursor-pointer"
+                            />
+                          </TableHead>
+                        )}
                         {visibleColumns.map((col) => {
                           const w = getColWidth(col.id);
 
@@ -924,7 +1065,7 @@ const LabUserDashboard = () => {
                       {paginated.length === 0 ? (
                         <TableRow>
                           <TableCell
-                            colSpan={Math.max(visibleColumns.length, 1)}
+                            colSpan={Math.max(visibleColumns.length, 1) + (reportFilter === "pending" ? 1 : 0)}
                             className="text-center py-8 text-muted-foreground text-sm"
                           >
                             No specimens found
@@ -932,7 +1073,30 @@ const LabUserDashboard = () => {
                         </TableRow>
                       ) : (
                         paginated.map((specimen, idx) => (
-                          <TableRow key={specimen.id} className="hover:bg-muted/50">
+                          <TableRow
+                            key={specimen.id}
+                            className={`hover:bg-muted/50 ${
+                              reportFilter === "pending" && selectedPendingIds.includes(specimen.id)
+                                ? "bg-primary/5"
+                                : ""
+                            }`}
+                          >
+                            {reportFilter === "pending" && (
+                              <TableCell
+                                style={{ width: "44px", minWidth: "44px" }}
+                                className="text-center py-2 px-3 align-middle select-none"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Checkbox
+                                  checked={selectedPendingIds.includes(specimen.id)}
+                                  onCheckedChange={(checked) =>
+                                    handleToggleSelectPending(specimen.id, Boolean(checked))
+                                  }
+                                  aria-label={`Select specimen ${specimen.specimenId}`}
+                                  className="cursor-pointer"
+                                />
+                              </TableCell>
+                            )}
                             {visibleColumns.map((col) => {
                               const w = getColWidth(col.id);
                               return (

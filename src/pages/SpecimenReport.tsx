@@ -10,8 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, ExternalLink, Pencil, Trash2, RefreshCw, ChevronDown, ArrowLeft } from "lucide-react";
+import { Download, ExternalLink, Pencil, Trash2, RefreshCw, ChevronDown, ArrowLeft, FileText } from "lucide-react";
 import LabHeader from "@/components/LabHeader";
+import { toast } from "sonner";
 
 const mockMedications = [
   {
@@ -47,7 +48,7 @@ const SpecimenReport = () => {
   const { specimenId } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("current-medications");
-  const { getSpecimenById } = useSpecimenContext();
+  const { getSpecimenById, updateSpecimen } = useSpecimenContext();
 
   const specimen = specimenId ? getSpecimenById(specimenId) : undefined;
 
@@ -85,10 +86,35 @@ const SpecimenReport = () => {
               <ExternalLink className="h-3.5 w-3.5" />
               Release Report
             </button>
-            <button className="text-primary text-sm font-medium flex items-center gap-1.5 hover:underline">
-              <Download className="h-3.5 w-3.5" />
-              Download Recent Report
-            </button>
+            {specimen.status?.toLowerCase() === "pending" ? (
+              <button
+                onClick={() => {
+                  toast.info(`Generating report for ${specimen.specimenId}...`);
+                  setTimeout(() => {
+                    updateSpecimen(specimen.id, {
+                      status: "New",
+                      hasDownload: true,
+                      hasView: true,
+                      reported: new Date().toLocaleDateString("en-US", {
+                        month: "2-digit",
+                        day: "2-digit",
+                        year: "numeric",
+                      }),
+                    });
+                    toast.success(`Report generated successfully for ${specimen.specimenId}!`);
+                  }, 800);
+                }}
+                className="text-primary text-sm font-medium flex items-center gap-1.5 hover:underline cursor-pointer"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                Generate report
+              </button>
+            ) : (
+              <button className="text-primary text-sm font-medium flex items-center gap-1.5 hover:underline">
+                <Download className="h-3.5 w-3.5" />
+                Download Recent Report
+              </button>
+            )}
           </div>
         </div>
 

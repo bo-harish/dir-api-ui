@@ -11,16 +11,36 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, Printer, Pencil, ChevronDown, ChevronUp, User, ArrowLeft } from "lucide-react";
+import { Download, Printer, Pencil, ChevronDown, ChevronUp, User, ArrowLeft, FileText } from "lucide-react";
 import LabHeader from "@/components/LabHeader";
+import { toast } from "sonner";
 
 const SpecimenDetail = () => {
   const { specimenId } = useParams();
   const navigate = useNavigate();
   const [showMore, setShowMore] = useState(true);
-  const { getSpecimenById } = useSpecimenContext();
+  const { getSpecimenById, updateSpecimen } = useSpecimenContext();
 
   const specimen = specimenId ? getSpecimenById(specimenId) : undefined;
+  const isPending = specimen?.status?.toLowerCase() === "pending";
+
+  const handleGenerateReport = () => {
+    if (!specimen) return;
+    toast.info(`Generating report for ${specimen.specimenId}...`);
+    setTimeout(() => {
+      updateSpecimen(specimen.id, {
+        status: "New",
+        hasDownload: true,
+        hasView: true,
+        reported: new Date().toLocaleDateString("en-US", {
+          month: "2-digit",
+          day: "2-digit",
+          year: "numeric",
+        }),
+      });
+      toast.success(`Report generated successfully for ${specimen.specimenId}!`);
+    }, 800);
+  };
 
   if (!specimen) {
     return (
@@ -66,10 +86,21 @@ const SpecimenDetail = () => {
             PGx {specimen.specimenId}
           </h1>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="h-9 gap-2">
-              <Download className="h-3.5 w-3.5" />
-              Download Report
-            </Button>
+            {isPending ? (
+              <Button
+                size="sm"
+                className="h-9 gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                onClick={handleGenerateReport}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                Generate report
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" className="h-9 gap-2">
+                <Download className="h-3.5 w-3.5" />
+                Download Report
+              </Button>
+            )}
             <Button variant="outline" size="sm" className="h-9 gap-2">
               <Printer className="h-3.5 w-3.5" />
               Print

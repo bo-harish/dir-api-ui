@@ -25,7 +25,6 @@ export const DEFAULT_COLUMNS: ColumnDefinition[] = [
   { id: "providerState", label: "Provider State", visible: false },
   { id: "dateOfBirth", label: "Date of Birth", visible: false },
   { id: "gender", label: "Gender", visible: false },
-  { id: "race", label: "Race", visible: false },
   { id: "mrn", label: "MRN", visible: false },
   { id: "collectionMethodCode", label: "Collection Method Code", visible: false },
   { id: "collectionMethodLabel", label: "Collection Method Label", visible: false },

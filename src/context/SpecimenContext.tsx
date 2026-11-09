@@ -11,7 +11,16 @@ interface SpecimenContextType {
   resetToDefault: () => void;
 }
 
-const STORAGE_KEY = "lab_user_specimens_data_v1";
+const STORAGE_KEY = "lab_user_specimens_data_v5";
+
+const cleanOldStorage = () => {
+  try {
+    localStorage.removeItem("lab_user_specimens_data_v1");
+    localStorage.removeItem("lab_user_specimens_data_v2");
+    localStorage.removeItem("lab_user_specimens_data_v3");
+    localStorage.removeItem("lab_user_specimens_data_v4");
+  } catch (e) {}
+};
 
 const SpecimenContext = createContext<SpecimenContextType | null>(null);
 
@@ -25,10 +34,15 @@ export const useSpecimenContext = () => {
 
 export const SpecimenProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [specimens, setSpecimens] = useState<Specimen[]>(() => {
+    cleanOldStorage();
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved) as Specimen[];
+        // Must contain pending specimens to be considered up-to-date
+        if (Array.isArray(parsed) && parsed.some((s) => s.status?.toLowerCase() === "pending")) {
+          return parsed;
+        }
       }
     } catch (e) {
       console.error("Failed to load specimens from localStorage", e);
@@ -59,7 +73,6 @@ export const SpecimenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       patientLastName: data.patientLastName || "",
       dateOfBirth: data.dateOfBirth || "",
       gender: data.gender || "U",
-      race: data.race || "Not Specified",
       mrn: data.mrn || `MRN-${Math.floor(1000 + Math.random() * 9000)}`,
       collected: data.collected || new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }),
       received: data.received || new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }),
