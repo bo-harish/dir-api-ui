@@ -11,7 +11,7 @@ interface SpecimenContextType {
   resetToDefault: () => void;
 }
 
-const STORAGE_KEY = "lab_user_specimens_data_v6";
+const STORAGE_KEY = "lab_user_specimens_data_v8";
 
 const cleanOldStorage = () => {
   try {
@@ -20,6 +20,8 @@ const cleanOldStorage = () => {
     localStorage.removeItem("lab_user_specimens_data_v3");
     localStorage.removeItem("lab_user_specimens_data_v4");
     localStorage.removeItem("lab_user_specimens_data_v5");
+    localStorage.removeItem("lab_user_specimens_data_v6");
+    localStorage.removeItem("lab_user_specimens_data_v7");
   } catch (e) {}
 };
 
@@ -40,8 +42,12 @@ export const SpecimenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as Specimen[];
-        // Must contain pending specimens to be considered up-to-date
-        if (Array.isArray(parsed) && parsed.some((s) => s.status?.toLowerCase() === "pending")) {
+        // Must contain both pending and processing specimens to be considered up-to-date
+        if (
+          Array.isArray(parsed) &&
+          parsed.some((s) => s.status?.toLowerCase() === "pending") &&
+          parsed.some((s) => s.status?.toLowerCase() === "processing")
+        ) {
           return parsed;
         }
       }

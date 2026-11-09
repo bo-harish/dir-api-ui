@@ -86,7 +86,7 @@ const SpecimenReport = () => {
               <ExternalLink className="h-3.5 w-3.5" />
               Release Report
             </button>
-            {specimen.status?.toLowerCase() === "pending" ? (
+            {specimen.status?.toLowerCase() === "processing" && (
               <button
                 onClick={() => {
                   toast.info(`Generating report for ${specimen.specimenId}...`);
@@ -109,12 +109,15 @@ const SpecimenReport = () => {
                 <FileText className="h-3.5 w-3.5" />
                 Generate report
               </button>
-            ) : (
-              <button className="text-primary text-sm font-medium flex items-center gap-1.5 hover:underline">
-                <Download className="h-3.5 w-3.5" />
-                Download Recent Report
-              </button>
             )}
+            {(specimen.hasDownload || specimen.hasView || specimen.status?.toLowerCase() === "released") &&
+              specimen.status?.toLowerCase() !== "pending" &&
+              specimen.status?.toLowerCase() !== "processing" && (
+                <button className="text-primary text-sm font-medium flex items-center gap-1.5 hover:underline">
+                  <Download className="h-3.5 w-3.5" />
+                  Download Recent Report
+                </button>
+              )}
           </div>
         </div>
 

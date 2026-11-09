@@ -99,6 +99,9 @@ const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   currentMedicationsReason: 170,
   currentMedicationsComments: 170,
   lastUpdated: 130,
+  downloadPdf: 135,
+  exception: 80,
+  action: 180,
 };
 
 const getInitialColumnWidths = (): Record<string, number> => {
@@ -145,10 +148,11 @@ const getInitialColumns = (): ColumnDefinition[] => {
 
 const PAGE_SIZE = 10;
 
-type ReportFilter = "all" | "awaiting" | "pending" | "released";
+type ReportFilter = "all" | "awaiting" | "processing" | "released";
 
 const getDisplayStatus = (status: string, hasView: boolean) => {
   if (status?.toLowerCase() === "pending") return "Pending";
+  if (status?.toLowerCase() === "processing") return "Processing";
   if (hasView) return "Released";
   return "Awaiting Release";
 };
@@ -175,7 +179,7 @@ const emptyFilters: FilterState = {
 const LabUserDashboard = () => {
   const [search, setSearch] = useState("");
   const [reportFilter, setReportFilter] = useState<ReportFilter>("all");
-  const [selectedPendingIds, setSelectedPendingIds] = useState<string[]>([]);
+  const [selectedProcessingIds, setSelectedProcessingIds] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
@@ -323,8 +327,8 @@ const LabUserDashboard = () => {
       `${s.patientFirstName} ${s.patientLastName}`.toLowerCase().includes(search.toLowerCase())
     )
     .filter((s) => {
-      if (reportFilter === "awaiting") return !s.hasView && s.status?.toLowerCase() !== "pending";
-      if (reportFilter === "pending") return s.status?.toLowerCase() === "pending";
+      if (reportFilter === "awaiting") return !s.hasView && s.status?.toLowerCase() !== "processing" && s.status?.toLowerCase() !== "pending";
+      if (reportFilter === "processing") return s.status?.toLowerCase() === "processing";
       if (reportFilter === "released") return s.hasView;
       return true;
     });
@@ -332,33 +336,33 @@ const LabUserDashboard = () => {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const pendingPageIds = paginated.map((s) => s.id);
-  const isAllPendingSelected =
-    pendingPageIds.length > 0 && pendingPageIds.every((id) => selectedPendingIds.includes(id));
-  const isSomePendingSelected =
-    selectedPendingIds.length > 0 && !isAllPendingSelected;
+  const processingPageIds = paginated.map((s) => s.id);
+  const isAllProcessingSelected =
+    processingPageIds.length > 0 && processingPageIds.every((id) => selectedProcessingIds.includes(id));
+  const isSomeProcessingSelected =
+    selectedProcessingIds.length > 0 && !isAllProcessingSelected;
 
-  const handleSelectAllPending = (checked: boolean | "indeterminate") => {
+  const handleSelectAllProcessing = (checked: boolean | "indeterminate") => {
     if (checked === true) {
-      const next = Array.from(new Set([...selectedPendingIds, ...pendingPageIds]));
-      setSelectedPendingIds(next);
+      const next = Array.from(new Set([...selectedProcessingIds, ...processingPageIds]));
+      setSelectedProcessingIds(next);
     } else {
-      setSelectedPendingIds((prev) => prev.filter((id) => !pendingPageIds.includes(id)));
+      setSelectedProcessingIds((prev) => prev.filter((id) => !processingPageIds.includes(id)));
     }
   };
 
-  const handleToggleSelectPending = (id: string, checked: boolean) => {
-    setSelectedPendingIds((prev) =>
+  const handleToggleSelectProcessing = (id: string, checked: boolean) => {
+    setSelectedProcessingIds((prev) =>
       checked ? [...prev, id] : prev.filter((item) => item !== id)
     );
   };
 
   const handleBulkGenerateReports = () => {
-    if (selectedPendingIds.length === 0) return;
-    const count = selectedPendingIds.length;
+    if (selectedProcessingIds.length === 0) return;
+    const count = selectedProcessingIds.length;
     toast.info(`Generating reports for ${count} selected specimen(s)...`);
     setTimeout(() => {
-      selectedPendingIds.forEach((id) => {
+      selectedProcessingIds.forEach((id) => {
         updateSpecimen(id, {
           status: "New",
           hasDownload: true,
@@ -371,14 +375,14 @@ const LabUserDashboard = () => {
         });
       });
       toast.success(`Successfully generated reports for ${count} specimen(s)!`);
-      setSelectedPendingIds([]);
+      setSelectedProcessingIds([]);
     }, 900);
   };
 
   const handleFilterChange = (filter: ReportFilter) => {
     setReportFilter(filter);
     setCurrentPage(1);
-    setSelectedPendingIds([]);
+    setSelectedProcessingIds([]);
   };
 
   const updateDraft = (key: keyof FilterState, value: string) =>
@@ -426,6 +430,9 @@ const LabUserDashboard = () => {
       case "reportStatus": {
         const displayStatus = getDisplayStatus(specimen.status, specimen.hasView);
         if (displayStatus === "Pending") {
+          return <span className="text-sky-600 dark:text-sky-400 font-medium">{displayStatus}</span>;
+        }
+        if (displayStatus === "Processing") {
           return <span className="text-amber-600 dark:text-amber-400 font-medium">{displayStatus}</span>;
         }
         if (displayStatus === "Released") {
@@ -491,8 +498,11 @@ const LabUserDashboard = () => {
         return specimen.currentMedicationsComments || "—";
       case "lastUpdated":
         return specimen.lastUpdated;
-      case "downloadPdf":
-        if (specimen.status?.toLowerCase() === "pending") {
+      case "downloadPdf": {
+        const isProcessing = specimen.status?.toLowerCase() === "processing";
+        const isReleased = getDisplayStatus(specimen.status, specimen.hasView) === "Released" || (specimen.hasDownload && specimen.status?.toLowerCase() !== "pending" && specimen.status?.toLowerCase() !== "processing");
+
+        if (isProcessing) {
           return (
             <Button
               size="sm"
@@ -508,12 +518,16 @@ const LabUserDashboard = () => {
             </Button>
           );
         }
-        return specimen.hasDownload ? (
-          <button className="text-link flex items-center gap-1 text-[13px] font-medium">
-            <Download className="h-3.5 w-3.5" />
-            Download
-          </button>
-        ) : null;
+        if (isReleased) {
+          return (
+            <button className="text-link flex items-center gap-1 text-[13px] font-medium">
+              <Download className="h-3.5 w-3.5" />
+              Download
+            </button>
+          );
+        }
+        return null;
+      }
       case "exception":
         return [0, 2, 5, 7].includes(idx) ? null : (
           <Tooltip>
@@ -532,6 +546,7 @@ const LabUserDashboard = () => {
           </Tooltip>
         );
       case "action": {
+        const isProcessing = specimen.status?.toLowerCase() === "processing" || reportFilter === "processing";
         const isPending = specimen.status?.toLowerCase() === "pending";
         return (
           <div className="flex items-center gap-1.5">
@@ -543,20 +558,20 @@ const LabUserDashboard = () => {
             >
               EDIT
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-[12px] px-2.5 cursor-pointer"
-              disabled={isPending}
-            >
-              RELEASE
-            </Button>
+            {!isProcessing && !isPending && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-[12px] px-2.5 cursor-pointer"
+              >
+                RELEASE
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
               className="h-7 text-[12px] px-2.5 cursor-pointer"
               onClick={() => navigate(`/lab-user/specimen/${specimen.id}/report`)}
-              disabled={isPending}
             >
               VIEW
             </Button>
@@ -731,13 +746,13 @@ const LabUserDashboard = () => {
               Reports Awaiting Release
             </Button>
             <Button
-              variant={reportFilter === "pending" ? "default" : "outline"}
+              variant={reportFilter === "processing" ? "default" : "outline"}
               size="sm"
-              className={`h-9 ${reportFilter === "pending" ? "bg-primary text-primary-foreground" : ""}`}
-              onClick={() => handleFilterChange("pending")}
+              className={`h-9 ${reportFilter === "processing" ? "bg-primary text-primary-foreground" : ""}`}
+              onClick={() => handleFilterChange("processing")}
             >
               <Hourglass className="h-4 w-4" />
-              Pending Reports
+              Processing Reports
             </Button>
             <Button
               variant={reportFilter === "released" ? "default" : "outline"}
@@ -751,22 +766,22 @@ const LabUserDashboard = () => {
           </div>
 
           <div className="flex items-center gap-2.5">
-            {reportFilter === "pending" && (
+            {reportFilter === "processing" && (
               <Button
-                variant={selectedPendingIds.length > 0 ? "default" : "outline"}
+                variant={selectedProcessingIds.length > 0 ? "default" : "outline"}
                 size="sm"
-                disabled={selectedPendingIds.length === 0}
+                disabled={selectedProcessingIds.length === 0}
                 onClick={handleBulkGenerateReports}
-                className={`h-9 gap-1.5 font-medium transition-all ${selectedPendingIds.length > 0
+                className={`h-9 gap-1.5 font-medium transition-all ${selectedProcessingIds.length > 0
                   ? "bg-primary text-primary-foreground shadow-sm cursor-pointer"
                   : "opacity-50 cursor-not-allowed text-muted-foreground"
                   }`}
               >
                 <FileText className="h-4 w-4" />
                 Generate Reports
-                {selectedPendingIds.length > 0 && (
+                {selectedProcessingIds.length > 0 && (
                   <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[11px] bg-primary-foreground/20 text-primary-foreground font-semibold">
-                    {selectedPendingIds.length}
+                    {selectedProcessingIds.length}
                   </span>
                 )}
               </Button>
@@ -1019,15 +1034,15 @@ const LabUserDashboard = () => {
           <Table className="w-max min-w-full">
             <TableHeader>
               <TableRow className="bg-table-header">
-                {reportFilter === "pending" && (
+                {reportFilter === "processing" && (
                   <TableHead
                     style={{ width: "44px", minWidth: "44px" }}
                     className="text-center py-2 px-3 align-middle select-none"
                   >
                     <Checkbox
-                      checked={isAllPendingSelected ? true : isSomePendingSelected ? "indeterminate" : false}
-                      onCheckedChange={handleSelectAllPending}
-                      aria-label="Select all pending specimens"
+                      checked={isAllProcessingSelected ? true : isSomeProcessingSelected ? "indeterminate" : false}
+                      onCheckedChange={handleSelectAllProcessing}
+                      aria-label="Select all processing specimens"
                       className="cursor-pointer"
                     />
                   </TableHead>
@@ -1049,13 +1064,38 @@ const LabUserDashboard = () => {
                     </TableHead>
                   );
                 })}
+
+                {/* Permanent Columns - Always Shown in Grid */}
+                {reportFilter !== "processing" && (
+                  <TableHead
+                    style={{ width: `${getColWidth("downloadPdf") || 135}px`, minWidth: "120px" }}
+                    className="relative group text-[13px] font-medium whitespace-nowrap py-2 px-3 align-middle select-none border-l border-border/40"
+                  >
+                    <span className="pr-2">Download PDF</span>
+                    {renderResizeHandle("downloadPdf")}
+                  </TableHead>
+                )}
+                <TableHead
+                  style={{ width: `${getColWidth("exception") || 80}px`, minWidth: "70px" }}
+                  className="relative group text-[13px] font-medium whitespace-nowrap text-center py-2 px-3 align-middle select-none border-l border-border/40"
+                >
+                  <span>Exception</span>
+                  {renderResizeHandle("exception")}
+                </TableHead>
+                <TableHead
+                  style={{ width: `${getColWidth("action") || 180}px`, minWidth: "160px" }}
+                  className="relative group text-[13px] font-medium whitespace-nowrap py-2 px-3 align-middle select-none border-l border-border/40"
+                >
+                  <span className="pr-2">Action</span>
+                  {renderResizeHandle("action")}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginated.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={Math.max(visibleColumns.length, 1) + (reportFilter === "pending" ? 1 : 0)}
+                    colSpan={visibleColumns.length + (reportFilter !== "processing" ? 1 : 0) + 2 + (reportFilter === "processing" ? 1 : 0)}
                     className="text-center py-8 text-muted-foreground text-sm"
                   >
                     No specimens found
@@ -1065,21 +1105,21 @@ const LabUserDashboard = () => {
                 paginated.map((specimen, idx) => (
                   <TableRow
                     key={specimen.id}
-                    className={`hover:bg-muted/50 ${reportFilter === "pending" && selectedPendingIds.includes(specimen.id)
+                    className={`hover:bg-muted/50 ${reportFilter === "processing" && selectedProcessingIds.includes(specimen.id)
                       ? "bg-primary/5"
                       : ""
                       }`}
                   >
-                    {reportFilter === "pending" && (
+                    {reportFilter === "processing" && (
                       <TableCell
                         style={{ width: "44px", minWidth: "44px" }}
                         className="text-center py-2 px-3 align-middle select-none"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Checkbox
-                          checked={selectedPendingIds.includes(specimen.id)}
+                          checked={selectedProcessingIds.includes(specimen.id)}
                           onCheckedChange={(checked) =>
-                            handleToggleSelectPending(specimen.id, Boolean(checked))
+                            handleToggleSelectProcessing(specimen.id, Boolean(checked))
                           }
                           aria-label={`Select specimen ${specimen.specimenId}`}
                           className="cursor-pointer"
@@ -1098,6 +1138,28 @@ const LabUserDashboard = () => {
                         </TableCell>
                       );
                     })}
+
+                    {/* Permanent Columns - Always Shown in Grid */}
+                    {reportFilter !== "processing" && (
+                      <TableCell
+                        style={{ width: `${getColWidth("downloadPdf") || 135}px`, minWidth: "120px" }}
+                        className="text-[13px] whitespace-nowrap py-2 px-3 border-l border-border/40"
+                      >
+                        {renderCellContent("downloadPdf", specimen, idx)}
+                      </TableCell>
+                    )}
+                    <TableCell
+                      style={{ width: `${getColWidth("exception") || 80}px`, minWidth: "70px" }}
+                      className="text-[13px] whitespace-nowrap py-2 px-3 text-center border-l border-border/40"
+                    >
+                      {renderCellContent("exception", specimen, idx)}
+                    </TableCell>
+                    <TableCell
+                      style={{ width: `${getColWidth("action") || 180}px`, minWidth: "160px" }}
+                      className="text-[13px] whitespace-nowrap py-2 px-3 border-l border-border/40"
+                    >
+                      {renderCellContent("action", specimen, idx)}
+                    </TableCell>
                   </TableRow>
                 ))
               )}

@@ -22,7 +22,11 @@ const SpecimenDetail = () => {
   const { getSpecimenById, updateSpecimen } = useSpecimenContext();
 
   const specimen = specimenId ? getSpecimenById(specimenId) : undefined;
-  const isPending = specimen?.status?.toLowerCase() === "pending";
+  const isProcessing = specimen?.status?.toLowerCase() === "processing";
+  const isReleased =
+    (specimen?.hasDownload || specimen?.hasView || specimen?.status?.toLowerCase() === "released") &&
+    specimen?.status?.toLowerCase() !== "pending" &&
+    specimen?.status?.toLowerCase() !== "processing";
 
   const handleGenerateReport = () => {
     if (!specimen) return;
@@ -86,7 +90,7 @@ const SpecimenDetail = () => {
             PGx {specimen.specimenId}
           </h1>
           <div className="flex items-center gap-3">
-            {isPending ? (
+            {isProcessing && (
               <Button
                 size="sm"
                 className="h-9 gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
@@ -95,7 +99,8 @@ const SpecimenDetail = () => {
                 <FileText className="h-3.5 w-3.5" />
                 Generate report
               </Button>
-            ) : (
+            )}
+            {isReleased && (
               <Button variant="outline" size="sm" className="h-9 gap-2">
                 <Download className="h-3.5 w-3.5" />
                 Download Report
