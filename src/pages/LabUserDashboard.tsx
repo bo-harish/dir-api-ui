@@ -63,19 +63,27 @@ import { ColumnSelector, DEFAULT_COLUMNS, ColumnDefinition } from "@/components/
 import { ImportModal, ImportType } from "@/components/ImportModal";
 import { Checkbox } from "@/components/ui/checkbox";
 
-const LOCAL_STORAGE_KEY = "lab_user_table_columns_v5";
-const LOCAL_STORAGE_WIDTHS_KEY = "lab_user_column_widths_v1";
+const LOCAL_STORAGE_KEY = "lab_user_table_columns_v6";
+const LOCAL_STORAGE_WIDTHS_KEY = "lab_user_column_widths_v2";
 
 const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   lcId: 110,
   specimenId: 140,
   reportStatus: 130,
+  panelName: 160,
+  reportTitle: 160,
   patientFirstName: 130,
   patientLastName: 130,
   collected: 110,
   received: 110,
   reported: 110,
   facility: 160,
+  facilityAddressLine1: 170,
+  facilityAddressLine2: 160,
+  facilityCity: 130,
+  facilityState: 110,
+  facilityCountry: 120,
+  facilityZip: 110,
   provider: 160,
   providerLocation: 180,
   providerState: 110,
@@ -91,9 +99,6 @@ const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   currentMedicationsReason: 170,
   currentMedicationsComments: 170,
   lastUpdated: 130,
-  downloadPdf: 110,
-  exception: 80,
-  action: 150,
 };
 
 const getInitialColumnWidths = (): Record<string, number> => {
@@ -110,10 +115,16 @@ const getInitialColumnWidths = (): Record<string, number> => {
 
 const getInitialColumns = (): ColumnDefinition[] => {
   try {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem("lab_user_table_columns_v4");
+    try {
+      localStorage.removeItem("lab_user_table_columns_v4");
+      localStorage.removeItem("lab_user_table_columns_v5");
+    } catch (e) {}
+
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved) as ColumnDefinition[];
-      const filtered = parsed.filter((c) => c.id !== "patients");
+      const defaultIds = new Set(DEFAULT_COLUMNS.map((c) => c.id));
+      const filtered = parsed.filter((c) => defaultIds.has(c.id));
       const labelMap = new Map(DEFAULT_COLUMNS.map((c) => [c.id, c.label]));
       const canHideMap = new Map(DEFAULT_COLUMNS.map((c) => [c.id, c.canHide]));
       const updatedSaved = filtered.map((c) => ({
@@ -422,6 +433,10 @@ const LabUserDashboard = () => {
         }
         return <span className="text-muted-foreground font-medium">{displayStatus}</span>;
       }
+      case "panelName":
+        return <span className="font-medium text-foreground">{specimen.panelName || "Comprehensive PGx Panel"}</span>;
+      case "reportTitle":
+        return specimen.reportTitle || "Pharmacogenomics Report";
       case "collected":
         return specimen.collected;
       case "received":
@@ -430,6 +445,18 @@ const LabUserDashboard = () => {
         return specimen.reported;
       case "facility":
         return specimen.facility;
+      case "facilityAddressLine1":
+        return specimen.facilityAddressLine1 || (specimen.facilityAddress ? specimen.facilityAddress.split(",")[0]?.trim() : "1 Sweet Lane, Suite T");
+      case "facilityAddressLine2":
+        return specimen.facilityAddressLine2 || "—";
+      case "facilityCity":
+        return specimen.facilityCity || "Downtown";
+      case "facilityState":
+        return specimen.facilityState || specimen.providerState || "NE";
+      case "facilityCountry":
+        return specimen.facilityCountry || "USA";
+      case "facilityZip":
+        return specimen.facilityZip || "00045";
       case "providerLocation":
         return specimen.facilityAddress || "—";
       case "providerState":
@@ -482,27 +509,27 @@ const LabUserDashboard = () => {
           );
         }
         return specimen.hasDownload ? (
-            <button className="text-link flex items-center gap-1 text-[13px] font-medium">
-              <Download className="h-3.5 w-3.5" />
-              Download
-            </button>
-            ) : null;
+          <button className="text-link flex items-center gap-1 text-[13px] font-medium">
+            <Download className="h-3.5 w-3.5" />
+            Download
+          </button>
+        ) : null;
       case "exception":
         return [0, 2, 5, 7].includes(idx) ? null : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="Exception"
-                  className="inline-flex items-center justify-center text-destructive hover:opacity-80"
-                >
-                  <AlertCircle className="h-5 w-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-sm whitespace-normal break-words text-xs leading-relaxed">
-                Drug(s) D1,S2 could not be resolved to a valid DrugBank ID. As a result, all requested medications in this request will be excluded from the PDF report.
-              </TooltipContent>
-            </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label="Exception"
+                className="inline-flex items-center justify-center text-destructive hover:opacity-80"
+              >
+                <AlertCircle className="h-5 w-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-sm whitespace-normal break-words text-xs leading-relaxed">
+              Drug(s) D1,S2 could not be resolved to a valid DrugBank ID. As a result, all requested medications in this request will be excluded from the PDF report.
+            </TooltipContent>
+          </Tooltip>
         );
       case "action": {
         const isPending = specimen.status?.toLowerCase() === "pending";
@@ -536,621 +563,583 @@ const LabUserDashboard = () => {
           </div>
         );
       }
-            default:
-            return null;
+      default:
+        return null;
     }
   };
 
-            return (
-            <div className="min-h-screen bg-background">
-              <LabHeader />
+  return (
+    <div className="min-h-screen bg-background">
+      <LabHeader />
 
-              <div className="p-6">
-                {/* Toolbar */}
-                <div className="flex items-center gap-3 mb-4">
-                  <ColumnSelector columns={columns} onApply={handleColumnsChange} />
+      <div className="p-6">
+        {/* Toolbar */}
+        <div className="flex items-center gap-3 mb-4">
+          <ColumnSelector columns={columns} onApply={handleColumnsChange} />
 
-                  <DropdownMenu>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-                            <ArrowLeftRight className="h-3.5 w-3.5" />
-                            Width
-                            <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">
-                        Increase or adjust column widths
-                      </TooltipContent>
-                    </Tooltip>
-                    <DropdownMenuContent align="start" className="w-52">
-                      <DropdownMenuItem onClick={() => handleAdjustAllWidths(30)}>
-                        <ZoomIn className="h-4 w-4 mr-2 text-primary" /> Increase Width (+30px)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAdjustAllWidths(-30)}>
-                        <ZoomOut className="h-4 w-4 mr-2 text-muted-foreground" /> Decrease Width (-30px)
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => handleSetPresetWidth("compact")}>
-                        Default / Compact
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleSetPresetWidth("comfortable")}>
-                        Comfortable (+30px)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleSetPresetWidth("wide")}>
-                        Wide (+60px)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleSetPresetWidth("extra-wide")}>
-                        Extra Wide (+100px)
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleResetWidths} className="text-muted-foreground text-xs">
-                        Reset All Widths
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+                    <ArrowLeftRight className="h-3.5 w-3.5" />
+                    Width
+                    <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Increase or adjust column widths
+              </TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="start" className="w-52">
+              <DropdownMenuItem onClick={() => handleAdjustAllWidths(30)}>
+                <ZoomIn className="h-4 w-4 mr-2 text-primary" /> Increase Width (+30px)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAdjustAllWidths(-30)}>
+                <ZoomOut className="h-4 w-4 mr-2 text-muted-foreground" /> Decrease Width (-30px)
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleSetPresetWidth("compact")}>
+                Default / Compact
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleSetPresetWidth("comfortable")}>
+                Comfortable (+30px)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleSetPresetWidth("wide")}>
+                Wide (+60px)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleSetPresetWidth("extra-wide")}>
+                Extra Wide (+100px)
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleResetWidths} className="text-muted-foreground text-xs">
+                Reset All Widths
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search Specimen"
-                      value={search}
-                      onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                      className="pl-9 w-48 h-9"
-                    />
-                  </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search Specimen"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+              className="pl-9 w-48 h-9"
+            />
+          </div>
 
-                  <Popover open={showFilters} onOpenChange={setShowFilters}>
-                    <PopoverTrigger asChild>
-                      <button
-                        type="button"
-                        className={`inline-flex items-center justify-center h-9 w-9 rounded-lg border border-input bg-background hover:bg-accent text-muted-foreground hover:text-primary transition-colors ${showFilters ? "text-primary border-primary" : ""}`}
-                        aria-label="Toggle filters"
-                      >
-                        <Filter className="h-4 w-4" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="w-[520px] p-5">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-base font-bold text-foreground">All Filters</h3>
-                          {appliedCount > 0 && (
-                            <span className="text-sm text-primary font-medium">
-                              {appliedCount} {appliedCount === 1 ? "filter" : "filters"} applied
-                            </span>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleClearAll}
-                          className="text-sm text-muted-foreground hover:text-foreground cursor-pointer"
-                        >
-                          Clear All
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-muted-foreground">Collected From</label>
-                          <Input type="date" value={draftFilters.collectedFrom} onChange={(e) => updateDraft("collectedFrom", e.target.value)} />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-muted-foreground">Collected To</label>
-                          <Input type="date" value={draftFilters.collectedTo} onChange={(e) => updateDraft("collectedTo", e.target.value)} />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-muted-foreground">Received From</label>
-                          <Input type="date" value={draftFilters.receivedFrom} onChange={(e) => updateDraft("receivedFrom", e.target.value)} />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-muted-foreground">Received To</label>
-                          <Input type="date" value={draftFilters.receivedTo} onChange={(e) => updateDraft("receivedTo", e.target.value)} />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-muted-foreground">Reported From</label>
-                          <Input type="date" value={draftFilters.reportedFrom} onChange={(e) => updateDraft("reportedFrom", e.target.value)} />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-muted-foreground">Reported To</label>
-                          <Input type="date" value={draftFilters.reportedTo} onChange={(e) => updateDraft("reportedTo", e.target.value)} />
-                        </div>
-                      </div>
-
-                      <div className="mt-5 flex justify-end">
-                        <Button
-                          onClick={() => { handleApply(); setShowFilters(false); }}
-                          className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"
-                        >
-                          Apply
-                        </Button>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-
-                  <div className="ml-auto">
-                    <Select value={environment || undefined} onValueChange={(v) => setEnvironment(v)}>
-                      <SelectTrigger className="w-[160px] h-9">
-                        <SelectValue placeholder="Environment" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="live">Live</SelectItem>
-                        <SelectItem value="sandbox">Sandbox</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Row 2: Status View Tabs (Left) & Actions (Right) */}
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant={reportFilter === "all" ? "default" : "outline"}
-                      size="sm"
-                      className={`h-9 ${reportFilter === "all" ? "bg-primary text-primary-foreground" : ""}`}
-                      onClick={() => handleFilterChange("all")}
-                    >
-                      <Files className="h-4 w-4" />
-                      All Reports
-                    </Button>
-                    <Button
-                      variant={reportFilter === "awaiting" ? "default" : "outline"}
-                      size="sm"
-                      className={`h-9 ${reportFilter === "awaiting" ? "bg-primary text-primary-foreground" : ""}`}
-                      onClick={() => handleFilterChange("awaiting")}
-                    >
-                      <Clock className="h-4 w-4" />
-                      Reports Awaiting Release
-                    </Button>
-                    <Button
-                      variant={reportFilter === "pending" ? "default" : "outline"}
-                      size="sm"
-                      className={`h-9 ${reportFilter === "pending" ? "bg-primary text-primary-foreground" : ""}`}
-                      onClick={() => handleFilterChange("pending")}
-                    >
-                      <Hourglass className="h-4 w-4" />
-                      Pending Reports
-                    </Button>
-                    <Button
-                      variant={reportFilter === "released" ? "default" : "outline"}
-                      size="sm"
-                      className={`h-9 ${reportFilter === "released" ? "bg-primary text-primary-foreground" : ""}`}
-                      onClick={() => handleFilterChange("released")}
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                      Released Reports
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center gap-2.5">
-                    {reportFilter === "pending" && (
-                      <Button
-                        variant={selectedPendingIds.length > 0 ? "default" : "outline"}
-                        size="sm"
-                        disabled={selectedPendingIds.length === 0}
-                        onClick={handleBulkGenerateReports}
-                        className={`h-9 gap-1.5 font-medium transition-all ${
-                          selectedPendingIds.length > 0
-                            ? "bg-primary text-primary-foreground shadow-sm cursor-pointer"
-                            : "opacity-50 cursor-not-allowed text-muted-foreground"
-                        }`}
-                      >
-                        <FileText className="h-4 w-4" />
-                        Generate Reports
-                        {selectedPendingIds.length > 0 && (
-                          <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[11px] bg-primary-foreground/20 text-primary-foreground font-semibold">
-                            {selectedPendingIds.length}
-                          </span>
-                        )}
-                      </Button>
-                    )}
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9 gap-1.5 cursor-pointer font-medium hover:border-primary/50 transition-colors"
-                        >
-                          <Download className="h-4 w-4" />
-                          Import Specimen
-                          <ChevronDown className="h-3 w-3 opacity-70" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-[280px] p-1.5 rounded-xl shadow-xl border border-border">
-                        <div className="px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                          Specimen Ingestion
-                        </div>
-                        <DropdownMenuSeparator className="my-1" />
-
-                        <DropdownMenuItem
-                          onClick={() => handleOpenImport("specimen")}
-                          className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
-                        >
-                          <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-                            <Upload className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-foreground">Import Specimen Batch</span>
-                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.xlsx</span>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                              Upload batch manifest file
-                            </p>
-                          </div>
-                        </DropdownMenuItem>
-
-                        <DropdownMenuItem
-                          onClick={() => {
-                            const csvContent =
-                              "data:text/csv;charset=utf-8,Specimen ID,Patient First Name,Patient Last Name,DOB,Gender,Facility,Provider,Collection Date\nDEVTest_100,John,Doe,01/01/1990,M,Main Clinic,Dr. Smith,01/15/2026";
-                            const encodedUri = encodeURI(csvContent);
-                            const link = document.createElement("a");
-                            link.setAttribute("href", encodedUri);
-                            link.setAttribute("download", "specimen_import_template.csv");
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }}
-                          className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
-                        >
-                          <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
-                            <FileDown className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-foreground">Download Template</span>
-                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv</span>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                              Sample specimen CSV headers
-                            </p>
-                          </div>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9 gap-1.5 cursor-pointer font-medium hover:border-primary/50 transition-colors"
-                        >
-                          <Download className="h-4 w-4" />
-                          Import Results
-                          <ChevronDown className="h-3 w-3 opacity-70" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-[280px] p-1.5 rounded-xl shadow-xl border border-border">
-                        <div className="px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                          Genomic Result Imports
-                        </div>
-                        <DropdownMenuSeparator className="my-1" />
-
-                        <DropdownMenuItem
-                          onClick={() => handleOpenImport("cnv")}
-                          className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
-                        >
-                          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-                            <FileSpreadsheet className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-foreground">Import CNV</span>
-                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv / .xlsx</span>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                              Copy Number Variation data
-                            </p>
-                          </div>
-                        </DropdownMenuItem>
-
-                        <DropdownMenuItem
-                          onClick={() => handleOpenImport("snp")}
-                          className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
-                        >
-                          <div className="p-2 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0">
-                            <Dna className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-foreground">Import SNP</span>
-                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv / .xlsx</span>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                              Single Nucleotide Polymorphism
-                            </p>
-                          </div>
-                        </DropdownMenuItem>
-
-                        <DropdownMenuItem
-                          onClick={() => handleOpenImport("slc6a4")}
-                          className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
-                        >
-                          <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
-                            <FileCheck2 className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-foreground">Import SLC6A4</span>
-                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv / .xlsx</span>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                              Targeted genotyping assays
-                            </p>
-                          </div>
-                        </DropdownMenuItem>
-
-                        <DropdownMenuItem
-                          onClick={() => handleOpenImport("vcf")}
-                          className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
-                        >
-                          <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-                            <FileCode2 className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-foreground">Import VCF</span>
-                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.vcf</span>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                              Variant Call Format files
-                            </p>
-                          </div>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    <Button
-                      size="sm"
-                      onClick={() => navigate("/lab-user/add-specimen")}
-                      className="h-9 gap-1.5 cursor-pointer font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add Specimen
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Context Badges & Filter Bar above Table */}
-                <div className="flex flex-wrap items-center gap-2.5 mb-3.5">
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 px-3.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300">
-                    <span>Time Zone :</span>
-                    <Clock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>ET (UTC-05:00)</span>
-                  </div>
-
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 px-3.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300">
-                    <span>Collected :</span>
-                    <Calendar className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>
-                      {appliedFilters.collectedFrom && appliedFilters.collectedTo
-                        ? `${appliedFilters.collectedFrom} → ${appliedFilters.collectedTo}`
-                        : appliedFilters.collectedFrom
-                        ? `from ${appliedFilters.collectedFrom}`
-                        : appliedFilters.collectedTo
-                        ? `until ${appliedFilters.collectedTo}`
-                        : "10-05-2026 → 11-04-2026"}
+          <Popover open={showFilters} onOpenChange={setShowFilters}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className={`inline-flex items-center justify-center h-9 w-9 rounded-lg border border-input bg-background hover:bg-accent text-muted-foreground hover:text-primary transition-colors ${showFilters ? "text-primary border-primary" : ""}`}
+                aria-label="Toggle filters"
+              >
+                <Filter className="h-4 w-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-[520px] p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-base font-bold text-foreground">All Filters</h3>
+                  {appliedCount > 0 && (
+                    <span className="text-sm text-primary font-medium">
+                      {appliedCount} {appliedCount === 1 ? "filter" : "filters"} applied
                     </span>
-                    {Boolean(appliedFilters.collectedFrom || appliedFilters.collectedTo) && (
-                      <button
-                        type="button"
-                        aria-label="Reset Collected filter"
-                        onClick={() => {
-                          const next = { ...appliedFilters, collectedFrom: "", collectedTo: "" };
-                          setAppliedFilters(next);
-                          setDraftFilters((d) => ({ ...d, collectedFrom: "", collectedTo: "" }));
-                        }}
-                        className="ml-1 hover:text-emerald-600 cursor-pointer"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Additional Active Filter Pills (Received, Reported) */}
-                  {(() => {
-                    const extraGroups: { key: "received" | "reported"; label: string; from: keyof FilterState; to: keyof FilterState }[] = [
-                      { key: "received", label: "Received", from: "receivedFrom", to: "receivedTo" },
-                      { key: "reported", label: "Reported", from: "reportedFrom", to: "reportedTo" },
-                    ];
-                    const activeExtras = extraGroups.filter((g) => appliedFilters[g.from] || appliedFilters[g.to]);
-                    return activeExtras.map((g) => {
-                      const from = appliedFilters[g.from];
-                      const to = appliedFilters[g.to];
-                      const range = from && to ? `${from} → ${to}` : from ? `from ${from}` : `until ${to}`;
-                      return (
-                        <div
-                          key={g.key}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 px-3.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300"
-                        >
-                          <span>{g.label} :</span>
-                          <Calendar className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                          <span>{range}</span>
-                          <button
-                            type="button"
-                            aria-label={`Remove ${g.label} filter`}
-                            onClick={() => {
-                              const next = { ...appliedFilters, [g.from]: "", [g.to]: "" };
-                              setAppliedFilters(next);
-                              setDraftFilters((d) => ({ ...d, [g.from]: "", [g.to]: "" }));
-                            }}
-                            className="ml-1 hover:text-emerald-600 cursor-pointer"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      );
-                    });
-                  })()}
+                  )}
                 </div>
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  className="text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  Clear All
+                </button>
+              </div>
 
-                {/* Table */}
-                <div className="border border-border rounded-md overflow-auto">
-                  <Table className="w-max min-w-full">
-                    <TableHeader>
-                      <TableRow className="bg-table-header">
-                        {reportFilter === "pending" && (
-                          <TableHead
-                            style={{ width: "44px", minWidth: "44px" }}
-                            className="text-center py-2 px-3 align-middle select-none"
-                          >
-                            <Checkbox
-                              checked={isAllPendingSelected ? true : isSomePendingSelected ? "indeterminate" : false}
-                              onCheckedChange={handleSelectAllPending}
-                              aria-label="Select all pending specimens"
-                              className="cursor-pointer"
-                            />
-                          </TableHead>
-                        )}
-                        {visibleColumns.map((col) => {
-                          const w = getColWidth(col.id);
-
-                          if (col.id === "downloadPdf") {
-                            return (
-                              <TableHead
-                                key={col.id}
-                                style={{ width: `${w}px`, minWidth: `${w}px` }}
-                                className="relative group text-[13px] font-medium whitespace-nowrap py-2 px-3 align-middle select-none"
-                              >
-                                <span className="pr-2">Download PDF</span>
-                                {renderResizeHandle(col.id)}
-                              </TableHead>
-                            );
-                          }
-                          if (col.id === "exception") {
-                            return (
-                              <TableHead
-                                key={col.id}
-                                style={{ width: `${w}px`, minWidth: `${w}px` }}
-                                className="relative group text-[13px] font-medium whitespace-nowrap text-center py-2 px-3 align-middle select-none"
-                              >
-                                <span>Exception</span>
-                                {renderResizeHandle(col.id)}
-                              </TableHead>
-                            );
-                          }
-                          if (col.id === "action") {
-                            return (
-                              <TableHead
-                                key={col.id}
-                                style={{ width: `${w}px`, minWidth: `${w}px` }}
-                                className="relative group text-[13px] font-medium whitespace-nowrap py-2 px-3 align-middle select-none"
-                              >
-                                <span className="pr-2">Action</span>
-                                {renderResizeHandle(col.id)}
-                              </TableHead>
-                            );
-                          }
-                          return (
-                            <TableHead
-                              key={col.id}
-                              style={{ width: `${w}px`, minWidth: `${w}px` }}
-                              className="relative group text-[13px] font-medium py-2 px-3 align-middle select-none"
-                            >
-                              <div className="flex items-center gap-1 leading-snug pr-3">
-                                <span className="line-clamp-2 break-words">{col.label}</span>
-                                <ArrowUpDown className="h-3 w-3 shrink-0 text-muted-foreground" />
-                              </div>
-                              {renderResizeHandle(col.id)}
-                            </TableHead>
-                          );
-                        })}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginated.length === 0 ? (
-                        <TableRow>
-                          <TableCell
-                            colSpan={Math.max(visibleColumns.length, 1) + (reportFilter === "pending" ? 1 : 0)}
-                            className="text-center py-8 text-muted-foreground text-sm"
-                          >
-                            No specimens found
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        paginated.map((specimen, idx) => (
-                          <TableRow
-                            key={specimen.id}
-                            className={`hover:bg-muted/50 ${
-                              reportFilter === "pending" && selectedPendingIds.includes(specimen.id)
-                                ? "bg-primary/5"
-                                : ""
-                            }`}
-                          >
-                            {reportFilter === "pending" && (
-                              <TableCell
-                                style={{ width: "44px", minWidth: "44px" }}
-                                className="text-center py-2 px-3 align-middle select-none"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Checkbox
-                                  checked={selectedPendingIds.includes(specimen.id)}
-                                  onCheckedChange={(checked) =>
-                                    handleToggleSelectPending(specimen.id, Boolean(checked))
-                                  }
-                                  aria-label={`Select specimen ${specimen.specimenId}`}
-                                  className="cursor-pointer"
-                                />
-                              </TableCell>
-                            )}
-                            {visibleColumns.map((col) => {
-                              const w = getColWidth(col.id);
-                              return (
-                                <TableCell
-                                  key={col.id}
-                                  style={{ width: `${w}px`, minWidth: `${w}px` }}
-                                  className={`text-[13px] whitespace-nowrap py-2 px-3 ${col.id === "exception" ? "text-center" : ""}`}
-                                >
-                                  {renderCellContent(col.id, specimen, idx)}
-                                </TableCell>
-                              );
-                            })}
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Collected From</label>
+                  <Input type="date" value={draftFilters.collectedFrom} onChange={(e) => updateDraft("collectedFrom", e.target.value)} />
                 </div>
-
-                {/* Footer */}
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-muted-foreground">{filtered.length} Specimens</p>
-
-                  <div className="flex items-center gap-1">
-                    <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage === 1} onClick={() => setCurrentPage(1)}>
-                      <ChevronsLeft className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-
-                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((page) => (
-                      <Button key={page} variant={currentPage === page ? "default" : "outline"} size="icon" className="h-8 w-8 text-xs" onClick={() => setCurrentPage(page)}>
-                        {page}
-                      </Button>
-                    ))}
-
-                    <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => p + 1)}>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage === totalPages} onClick={() => setCurrentPage(totalPages)}>
-                      <ChevronsRight className="h-4 w-4" />
-                    </Button>
-                  </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Collected To</label>
+                  <Input type="date" value={draftFilters.collectedTo} onChange={(e) => updateDraft("collectedTo", e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Received From</label>
+                  <Input type="date" value={draftFilters.receivedFrom} onChange={(e) => updateDraft("receivedFrom", e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Received To</label>
+                  <Input type="date" value={draftFilters.receivedTo} onChange={(e) => updateDraft("receivedTo", e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Reported From</label>
+                  <Input type="date" value={draftFilters.reportedFrom} onChange={(e) => updateDraft("reportedFrom", e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Reported To</label>
+                  <Input type="date" value={draftFilters.reportedTo} onChange={(e) => updateDraft("reportedTo", e.target.value)} />
                 </div>
               </div>
 
-              <ImportModal
-                open={importModalOpen}
-                onOpenChange={setImportModalOpen}
-                type={importType}
-              />
-            </div>
-            );
+              <div className="mt-5 flex justify-end">
+                <Button
+                  onClick={() => { handleApply(); setShowFilters(false); }}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"
+                >
+                  Apply
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <div className="ml-auto">
+            <Select value={environment || undefined} onValueChange={(v) => setEnvironment(v)}>
+              <SelectTrigger className="w-[160px] h-9">
+                <SelectValue placeholder="Environment" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="live">Live</SelectItem>
+                <SelectItem value="sandbox">Sandbox</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Row 2: Status View Tabs (Left) & Actions (Right) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2">
+            <Button
+              variant={reportFilter === "all" ? "default" : "outline"}
+              size="sm"
+              className={`h-9 ${reportFilter === "all" ? "bg-primary text-primary-foreground" : ""}`}
+              onClick={() => handleFilterChange("all")}
+            >
+              <Files className="h-4 w-4" />
+              All Reports
+            </Button>
+            <Button
+              variant={reportFilter === "awaiting" ? "default" : "outline"}
+              size="sm"
+              className={`h-9 ${reportFilter === "awaiting" ? "bg-primary text-primary-foreground" : ""}`}
+              onClick={() => handleFilterChange("awaiting")}
+            >
+              <Clock className="h-4 w-4" />
+              Reports Awaiting Release
+            </Button>
+            <Button
+              variant={reportFilter === "pending" ? "default" : "outline"}
+              size="sm"
+              className={`h-9 ${reportFilter === "pending" ? "bg-primary text-primary-foreground" : ""}`}
+              onClick={() => handleFilterChange("pending")}
+            >
+              <Hourglass className="h-4 w-4" />
+              Pending Reports
+            </Button>
+            <Button
+              variant={reportFilter === "released" ? "default" : "outline"}
+              size="sm"
+              className={`h-9 ${reportFilter === "released" ? "bg-primary text-primary-foreground" : ""}`}
+              onClick={() => handleFilterChange("released")}
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Released Reports
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            {reportFilter === "pending" && (
+              <Button
+                variant={selectedPendingIds.length > 0 ? "default" : "outline"}
+                size="sm"
+                disabled={selectedPendingIds.length === 0}
+                onClick={handleBulkGenerateReports}
+                className={`h-9 gap-1.5 font-medium transition-all ${selectedPendingIds.length > 0
+                  ? "bg-primary text-primary-foreground shadow-sm cursor-pointer"
+                  : "opacity-50 cursor-not-allowed text-muted-foreground"
+                  }`}
+              >
+                <FileText className="h-4 w-4" />
+                Generate Reports
+                {selectedPendingIds.length > 0 && (
+                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[11px] bg-primary-foreground/20 text-primary-foreground font-semibold">
+                    {selectedPendingIds.length}
+                  </span>
+                )}
+              </Button>
+            )}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 cursor-pointer font-medium hover:border-primary/50 transition-colors"
+                >
+                  <Download className="h-4 w-4" />
+                  Import Specimen
+                  <ChevronDown className="h-3 w-3 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[280px] p-1.5 rounded-xl shadow-xl border border-border">
+                <div className="px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Specimen Ingestion
+                </div>
+                <DropdownMenuSeparator className="my-1" />
+
+                <DropdownMenuItem
+                  onClick={() => handleOpenImport("specimen")}
+                  className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
+                >
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                    <Upload className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-foreground">Import Specimen Batch</span>
+                      <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.xlsx</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      Upload batch manifest file
+                    </p>
+                  </div>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => {
+                    const csvContent =
+                      "data:text/csv;charset=utf-8,Specimen ID,Patient First Name,Patient Last Name,DOB,Gender,Facility,Provider,Collection Date\nDEVTest_100,John,Doe,01/01/1990,M,Main Clinic,Dr. Smith,01/15/2026";
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", "specimen_import_template.csv");
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
+                >
+                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                    <FileDown className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-foreground">Download Template</span>
+                      <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      Sample specimen CSV headers
+                    </p>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 cursor-pointer font-medium hover:border-primary/50 transition-colors"
+                >
+                  <Download className="h-4 w-4" />
+                  Import Results
+                  <ChevronDown className="h-3 w-3 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[280px] p-1.5 rounded-xl shadow-xl border border-border">
+                <div className="px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Genomic Result Imports
+                </div>
+                <DropdownMenuSeparator className="my-1" />
+
+                <DropdownMenuItem
+                  onClick={() => handleOpenImport("cnv")}
+                  className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
+                >
+                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <FileSpreadsheet className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-foreground">Import CNV</span>
+                      <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv / .xlsx</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      Copy Number Variation data
+                    </p>
+                  </div>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => handleOpenImport("snp")}
+                  className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
+                >
+                  <div className="p-2 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0">
+                    <Dna className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-foreground">Import SNP</span>
+                      <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv / .xlsx</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      Single Nucleotide Polymorphism
+                    </p>
+                  </div>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => handleOpenImport("slc6a4")}
+                  className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
+                >
+                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                    <FileCheck2 className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-foreground">Import SLC6A4</span>
+                      <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.csv / .xlsx</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      Targeted genotyping assays
+                    </p>
+                  </div>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => handleOpenImport("vcf")}
+                  className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-muted/80 focus:bg-muted/80 transition-colors"
+                >
+                  <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                    <FileCode2 className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-foreground">Import VCF</span>
+                      <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">.vcf</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      Variant Call Format files
+                    </p>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button
+              size="sm"
+              onClick={() => navigate("/lab-user/add-specimen")}
+              className="h-9 gap-1.5 cursor-pointer font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+            >
+              <Plus className="h-4 w-4" />
+              Add Specimen
+            </Button>
+          </div>
+        </div>
+
+        {/* Context Badges & Filter Bar above Table */}
+        <div className="flex flex-wrap items-center gap-2.5 mb-3.5">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 px-3.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+            <span>Time Zone :</span>
+            <Clock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>ET (UTC-05:00)</span>
+          </div>
+
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 px-3.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+            <span>Collected :</span>
+            <Calendar className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>
+              {appliedFilters.collectedFrom && appliedFilters.collectedTo
+                ? `${appliedFilters.collectedFrom} → ${appliedFilters.collectedTo}`
+                : appliedFilters.collectedFrom
+                  ? `from ${appliedFilters.collectedFrom}`
+                  : appliedFilters.collectedTo
+                    ? `until ${appliedFilters.collectedTo}`
+                    : "10-05-2026 → 11-04-2026"}
+            </span>
+            {Boolean(appliedFilters.collectedFrom || appliedFilters.collectedTo) && (
+              <button
+                type="button"
+                aria-label="Reset Collected filter"
+                onClick={() => {
+                  const next = { ...appliedFilters, collectedFrom: "", collectedTo: "" };
+                  setAppliedFilters(next);
+                  setDraftFilters((d) => ({ ...d, collectedFrom: "", collectedTo: "" }));
+                }}
+                className="ml-1 hover:text-emerald-600 cursor-pointer"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+
+          {/* Additional Active Filter Pills (Received, Reported) */}
+          {(() => {
+            const extraGroups: { key: "received" | "reported"; label: string; from: keyof FilterState; to: keyof FilterState }[] = [
+              { key: "received", label: "Received", from: "receivedFrom", to: "receivedTo" },
+              { key: "reported", label: "Reported", from: "reportedFrom", to: "reportedTo" },
+            ];
+            const activeExtras = extraGroups.filter((g) => appliedFilters[g.from] || appliedFilters[g.to]);
+            return activeExtras.map((g) => {
+              const from = appliedFilters[g.from];
+              const to = appliedFilters[g.to];
+              const range = from && to ? `${from} → ${to}` : from ? `from ${from}` : `until ${to}`;
+              return (
+                <div
+                  key={g.key}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 px-3.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300"
+                >
+                  <span>{g.label} :</span>
+                  <Calendar className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>{range}</span>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${g.label} filter`}
+                    onClick={() => {
+                      const next = { ...appliedFilters, [g.from]: "", [g.to]: "" };
+                      setAppliedFilters(next);
+                      setDraftFilters((d) => ({ ...d, [g.from]: "", [g.to]: "" }));
+                    }}
+                    className="ml-1 hover:text-emerald-600 cursor-pointer"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            });
+          })()}
+        </div>
+
+        {/* Table */}
+        <div className="border border-border rounded-md overflow-auto">
+          <Table className="w-max min-w-full">
+            <TableHeader>
+              <TableRow className="bg-table-header">
+                {reportFilter === "pending" && (
+                  <TableHead
+                    style={{ width: "44px", minWidth: "44px" }}
+                    className="text-center py-2 px-3 align-middle select-none"
+                  >
+                    <Checkbox
+                      checked={isAllPendingSelected ? true : isSomePendingSelected ? "indeterminate" : false}
+                      onCheckedChange={handleSelectAllPending}
+                      aria-label="Select all pending specimens"
+                      className="cursor-pointer"
+                    />
+                  </TableHead>
+                )}
+                {visibleColumns.map((col) => {
+                  const w = getColWidth(col.id);
+
+                  return (
+                    <TableHead
+                      key={col.id}
+                      style={{ width: `${w}px`, minWidth: `${w}px` }}
+                      className="relative group text-[13px] font-medium py-2 px-3 align-middle select-none"
+                    >
+                      <div className="flex items-center gap-1 leading-snug pr-3">
+                        <span className="line-clamp-2 break-words">{col.label}</span>
+                        <ArrowUpDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+                      </div>
+                      {renderResizeHandle(col.id)}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginated.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={Math.max(visibleColumns.length, 1) + (reportFilter === "pending" ? 1 : 0)}
+                    className="text-center py-8 text-muted-foreground text-sm"
+                  >
+                    No specimens found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginated.map((specimen, idx) => (
+                  <TableRow
+                    key={specimen.id}
+                    className={`hover:bg-muted/50 ${reportFilter === "pending" && selectedPendingIds.includes(specimen.id)
+                      ? "bg-primary/5"
+                      : ""
+                      }`}
+                  >
+                    {reportFilter === "pending" && (
+                      <TableCell
+                        style={{ width: "44px", minWidth: "44px" }}
+                        className="text-center py-2 px-3 align-middle select-none"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Checkbox
+                          checked={selectedPendingIds.includes(specimen.id)}
+                          onCheckedChange={(checked) =>
+                            handleToggleSelectPending(specimen.id, Boolean(checked))
+                          }
+                          aria-label={`Select specimen ${specimen.specimenId}`}
+                          className="cursor-pointer"
+                        />
+                      </TableCell>
+                    )}
+                    {visibleColumns.map((col) => {
+                      const w = getColWidth(col.id);
+                      return (
+                        <TableCell
+                          key={col.id}
+                          style={{ width: `${w}px`, minWidth: `${w}px` }}
+                          className={`text-[13px] whitespace-nowrap py-2 px-3 ${col.id === "exception" ? "text-center" : ""}`}
+                        >
+                          {renderCellContent(col.id, specimen, idx)}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between mt-4">
+          <p className="text-sm text-muted-foreground">{filtered.length} Specimens</p>
+
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage === 1} onClick={() => setCurrentPage(1)}>
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((page) => (
+              <Button key={page} variant={currentPage === page ? "default" : "outline"} size="icon" className="h-8 w-8 text-xs" onClick={() => setCurrentPage(page)}>
+                {page}
+              </Button>
+            ))}
+
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => p + 1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage === totalPages} onClick={() => setCurrentPage(totalPages)}>
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <ImportModal
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        type={importType}
+      />
+    </div>
+  );
 };
 
-            export default LabUserDashboard;
+export default LabUserDashboard;

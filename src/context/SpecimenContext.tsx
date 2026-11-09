@@ -11,7 +11,7 @@ interface SpecimenContextType {
   resetToDefault: () => void;
 }
 
-const STORAGE_KEY = "lab_user_specimens_data_v5";
+const STORAGE_KEY = "lab_user_specimens_data_v6";
 
 const cleanOldStorage = () => {
   try {
@@ -19,6 +19,7 @@ const cleanOldStorage = () => {
     localStorage.removeItem("lab_user_specimens_data_v2");
     localStorage.removeItem("lab_user_specimens_data_v3");
     localStorage.removeItem("lab_user_specimens_data_v4");
+    localStorage.removeItem("lab_user_specimens_data_v5");
   } catch (e) {}
 };
 
