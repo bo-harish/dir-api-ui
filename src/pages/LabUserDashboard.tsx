@@ -554,14 +554,14 @@ const LabUserDashboard = () => {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 text-[12px] px-2.5 font-medium cursor-pointer text-primary border-primary/40 hover:bg-primary/10 gap-1.5"
+                className="h-7 text-[12px] px-2.5 font-medium cursor-pointer text-primary border-primary/40 hover:bg-accent hover:text-white hover:border-accent gap-1.5 transition-colors group"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleGenerateReport(specimen);
                 }}
               >
-                <FileText className="h-3.5 w-3.5" />
-                Generate report
+                <FileText className="h-3.5 w-3.5 text-primary group-hover:text-white transition-colors" />
+                <span>Generate report</span>
               </Button>
             </div>
           );
@@ -646,10 +646,14 @@ const LabUserDashboard = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-                    <ArrowLeftRight className="h-3.5 w-3.5" />
-                    Width
-                    <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-white cursor-pointer transition-colors group"
+                  >
+                    <ArrowLeftRight className="h-3.5 w-3.5 group-hover:text-white transition-colors" />
+                    <span>Width</span>
+                    <ChevronDown className="h-3 w-3 text-muted-foreground group-hover:text-white transition-colors" />
                   </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
@@ -706,7 +710,7 @@ const LabUserDashboard = () => {
             <PopoverTrigger asChild>
               <button
                 type="button"
-                className={`inline-flex items-center justify-center h-9 w-9 rounded-lg border border-input bg-background hover:bg-accent text-muted-foreground hover:text-primary transition-colors ${showFilters ? "text-primary border-primary" : ""}`}
+                className={`inline-flex items-center justify-center h-9 w-9 rounded-lg border border-input bg-background hover:bg-accent text-muted-foreground hover:text-white cursor-pointer transition-colors ${showFilters ? "text-primary border-primary hover:text-white" : ""}`}
                 aria-label="Toggle filters"
               >
                 <Filter className="h-4 w-4" />
