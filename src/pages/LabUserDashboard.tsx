@@ -166,15 +166,52 @@ type FilterState = {
   reportedTo: string;
 };
 
-const emptyFilters: FilterState = {
-  collectedFrom: "",
-  collectedTo: "",
-  receivedFrom: "",
-  receivedTo: "",
-  reportedFrom: "",
-  reportedTo: "",
+const getLast30Days = () => {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 30);
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const formatInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  return {
+    from: formatInput(start),
+    to: formatInput(end),
+  };
 };
 
+const getDefaultFilters = (): FilterState => {
+  const last30 = getLast30Days();
+  return {
+    collectedFrom: last30.from,
+    collectedTo: last30.to,
+    receivedFrom: "",
+    receivedTo: "",
+    reportedFrom: "",
+    reportedTo: "",
+  };
+};
+
+const formatFilterDate = (val: string) => {
+  if (!val) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+    const [yyyy, mm, dd] = val.split("-");
+    return `${mm}-${dd}-${yyyy}`;
+  }
+  return val;
+};
+
+const isAnyFilterSet = (filters: FilterState): boolean => {
+  return Object.values(filters).some((val) => val && val.trim() !== "");
+};
+
+const getAppliedFilterCount = (filters: FilterState): number => {
+  let count = 0;
+  if (filters.collectedFrom || filters.collectedTo) count++;
+  if (filters.receivedFrom || filters.receivedTo) count++;
+  if (filters.reportedFrom || filters.reportedTo) count++;
+  return count;
+};
 
 const LabUserDashboard = () => {
   const [search, setSearch] = useState("");
@@ -182,8 +219,8 @@ const LabUserDashboard = () => {
   const [selectedProcessingIds, setSelectedProcessingIds] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
-  const [appliedFilters, setAppliedFilters] = useState<FilterState>(emptyFilters);
+  const [draftFilters, setDraftFilters] = useState<FilterState>(getDefaultFilters);
+  const [appliedFilters, setAppliedFilters] = useState<FilterState>(getDefaultFilters);
   const [environment, setEnvironment] = useState<string>("live");
   const [columns, setColumns] = useState<ColumnDefinition[]>(getInitialColumns);
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>(getInitialColumnWidths);
@@ -319,7 +356,7 @@ const LabUserDashboard = () => {
     } catch (err) { }
   };
 
-  const appliedCount = Object.values(appliedFilters).filter((v) => v && v !== "").length;
+  const appliedCount = getAppliedFilterCount(appliedFilters);
 
   const filtered = specimens
     .filter((s) =>
@@ -389,14 +426,23 @@ const LabUserDashboard = () => {
     setDraftFilters((prev) => ({ ...prev, [key]: value }));
 
   const handleApply = () => {
-    setAppliedFilters(draftFilters);
+    let toApply = draftFilters;
+    if (!isAnyFilterSet(draftFilters)) {
+      toApply = getDefaultFilters();
+      setDraftFilters(toApply);
+      toast.info("At least one filter is mandatory. Defaulted to Collected Date (Last 30 days).");
+    }
+    setAppliedFilters(toApply);
     setCurrentPage(1);
+    setShowFilters(false);
   };
 
   const handleClearAll = () => {
-    setDraftFilters(emptyFilters);
-    setAppliedFilters(emptyFilters);
+    const defaultFilters = getDefaultFilters();
+    setDraftFilters(defaultFilters);
+    setAppliedFilters(defaultFilters);
     setCurrentPage(1);
+    toast.info("Filters reset to default. At least one filter is mandatory (Last 30 days).");
   };
 
   const renderResizeHandle = (colId: string) => (
@@ -504,26 +550,30 @@ const LabUserDashboard = () => {
 
         if (isProcessing) {
           return (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-[12px] px-2.5 font-medium cursor-pointer text-primary border-primary/40 hover:bg-primary/10 gap-1.5"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleGenerateReport(specimen);
-              }}
-            >
-              <FileText className="h-3.5 w-3.5" />
-              Generate report
-            </Button>
+            <div className="flex items-center justify-center">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-[12px] px-2.5 font-medium cursor-pointer text-primary border-primary/40 hover:bg-primary/10 gap-1.5"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleGenerateReport(specimen);
+                }}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                Generate report
+              </Button>
+            </div>
           );
         }
         if (isReleased) {
           return (
-            <button className="text-link flex items-center gap-1 text-[13px] font-medium">
-              <Download className="h-3.5 w-3.5" />
-              Download
-            </button>
+            <div className="flex items-center justify-center">
+              <button className="text-link inline-flex items-center gap-1 text-[13px] font-medium cursor-pointer">
+                <Download className="h-3.5 w-3.5" />
+                Download
+              </button>
+            </div>
           );
         }
         return null;
@@ -644,7 +694,15 @@ const LabUserDashboard = () => {
             />
           </div>
 
-          <Popover open={showFilters} onOpenChange={setShowFilters}>
+          <Popover
+            open={showFilters}
+            onOpenChange={(open) => {
+              setShowFilters(open);
+              if (open) {
+                setDraftFilters(appliedFilters);
+              }
+            }}
+          >
             <PopoverTrigger asChild>
               <button
                 type="button"
@@ -957,76 +1015,103 @@ const LabUserDashboard = () => {
         </div>
 
         {/* Context Badges & Filter Bar above Table */}
-        <div className="flex flex-wrap items-center gap-2.5 mb-3.5">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 px-3.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300">
-            <span>Time Zone :</span>
-            <Clock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>ET (UTC-05:00)</span>
-          </div>
-
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 px-3.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300">
-            <span>Collected :</span>
-            <Calendar className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>
-              {appliedFilters.collectedFrom && appliedFilters.collectedTo
-                ? `${appliedFilters.collectedFrom} → ${appliedFilters.collectedTo}`
-                : appliedFilters.collectedFrom
-                  ? `from ${appliedFilters.collectedFrom}`
-                  : appliedFilters.collectedTo
-                    ? `until ${appliedFilters.collectedTo}`
-                    : "10-05-2026 → 11-04-2026"}
-            </span>
-            {Boolean(appliedFilters.collectedFrom || appliedFilters.collectedTo) && (
-              <button
-                type="button"
-                aria-label="Reset Collected filter"
-                onClick={() => {
-                  const next = { ...appliedFilters, collectedFrom: "", collectedTo: "" };
-                  setAppliedFilters(next);
-                  setDraftFilters((d) => ({ ...d, collectedFrom: "", collectedTo: "" }));
-                }}
-                className="ml-1 hover:text-emerald-600 cursor-pointer"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-
-          {/* Additional Active Filter Pills (Received, Reported) */}
-          {(() => {
-            const extraGroups: { key: "received" | "reported"; label: string; from: keyof FilterState; to: keyof FilterState }[] = [
-              { key: "received", label: "Received", from: "receivedFrom", to: "receivedTo" },
-              { key: "reported", label: "Reported", from: "reportedFrom", to: "reportedTo" },
-            ];
-            const activeExtras = extraGroups.filter((g) => appliedFilters[g.from] || appliedFilters[g.to]);
-            return activeExtras.map((g) => {
-              const from = appliedFilters[g.from];
-              const to = appliedFilters[g.to];
-              const range = from && to ? `${from} → ${to}` : from ? `from ${from}` : `until ${to}`;
-              return (
-                <div
-                  key={g.key}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 px-3.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300"
-                >
-                  <span>{g.label} :</span>
-                  <Calendar className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>{range}</span>
-                  <button
-                    type="button"
-                    aria-label={`Remove ${g.label} filter`}
-                    onClick={() => {
-                      const next = { ...appliedFilters, [g.from]: "", [g.to]: "" };
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3.5">
+          {/* Active Filter Pills (Left) */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Collected Date Filter Pill */}
+            {(appliedFilters.collectedFrom || appliedFilters.collectedTo) && (
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 px-3.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+                <span>Collected :</span>
+                <Calendar className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>
+                  {appliedFilters.collectedFrom && appliedFilters.collectedTo
+                    ? `${formatFilterDate(appliedFilters.collectedFrom)} → ${formatFilterDate(appliedFilters.collectedTo)}`
+                    : appliedFilters.collectedFrom
+                      ? `from ${formatFilterDate(appliedFilters.collectedFrom)}`
+                      : `until ${formatFilterDate(appliedFilters.collectedTo)}`}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Reset Collected filter"
+                  onClick={() => {
+                    const hasOtherFilter = Boolean(
+                      appliedFilters.receivedFrom ||
+                      appliedFilters.receivedTo ||
+                      appliedFilters.reportedFrom ||
+                      appliedFilters.reportedTo
+                    );
+                    if (hasOtherFilter) {
+                      const next = { ...appliedFilters, collectedFrom: "", collectedTo: "" };
                       setAppliedFilters(next);
-                      setDraftFilters((d) => ({ ...d, [g.from]: "", [g.to]: "" }));
-                    }}
-                    className="ml-1 hover:text-emerald-600 cursor-pointer"
+                      setDraftFilters((d) => ({ ...d, collectedFrom: "", collectedTo: "" }));
+                    } else {
+                      const defaultFilters = getDefaultFilters();
+                      setAppliedFilters(defaultFilters);
+                      setDraftFilters(defaultFilters);
+                      toast.info("At least one filter is mandatory. Reverted to Collected Date (Last 30 days).");
+                    }
+                  }}
+                  className="ml-1 hover:text-emerald-600 cursor-pointer"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+
+            {/* Additional Active Filter Pills (Received, Reported) */}
+            {(() => {
+              const extraGroups: { key: "received" | "reported"; label: string; from: keyof FilterState; to: keyof FilterState }[] = [
+                { key: "received", label: "Received", from: "receivedFrom", to: "receivedTo" },
+                { key: "reported", label: "Reported", from: "reportedFrom", to: "reportedTo" },
+              ];
+              const activeExtras = extraGroups.filter((g) => appliedFilters[g.from] || appliedFilters[g.to]);
+              return activeExtras.map((g) => {
+                const from = appliedFilters[g.from];
+                const to = appliedFilters[g.to];
+                const range = from && to
+                  ? `${formatFilterDate(from)} → ${formatFilterDate(to)}`
+                  : from
+                    ? `from ${formatFilterDate(from)}`
+                    : `until ${formatFilterDate(to)}`;
+                return (
+                  <div
+                    key={g.key}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 px-3.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300"
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              );
-            });
-          })()}
+                    <span>{g.label} :</span>
+                    <Calendar className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>{range}</span>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${g.label} filter`}
+                      onClick={() => {
+                        const next = { ...appliedFilters, [g.from]: "", [g.to]: "" };
+                        if (!isAnyFilterSet(next)) {
+                          const defaultFilters = getDefaultFilters();
+                          setAppliedFilters(defaultFilters);
+                          setDraftFilters(defaultFilters);
+                          toast.info("At least one filter is mandatory. Defaulted to Collected Date (Last 30 days).");
+                        } else {
+                          setAppliedFilters(next);
+                          setDraftFilters((d) => ({ ...d, [g.from]: "", [g.to]: "" }));
+                        }
+                      }}
+                      className="ml-1 hover:text-emerald-600 cursor-pointer"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+
+          {/* Time Zone Informational Note (Neutral metadata badge, right-aligned) */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 border border-border/60 rounded-md px-2.5 py-1 select-none shrink-0">
+            <Clock className="h-3.5 w-3.5 text-muted-foreground/70" />
+            <span>Time Zone:</span>
+            <span className="font-medium text-foreground">ET (UTC-05:00)</span>
+          </div>
         </div>
 
         {/* Table */}
@@ -1069,7 +1154,7 @@ const LabUserDashboard = () => {
                 {reportFilter !== "processing" && (
                   <TableHead
                     style={{ width: `${getColWidth("downloadPdf") || 135}px`, minWidth: "120px" }}
-                    className="relative group text-[13px] font-medium whitespace-nowrap py-2 px-3 align-middle select-none border-l border-border/40"
+                    className="relative group text-[13px] font-medium whitespace-nowrap text-center py-2 px-3 align-middle select-none border-l border-border/40"
                   >
                     <span className="pr-2">Download PDF</span>
                     {renderResizeHandle("downloadPdf")}
@@ -1143,7 +1228,7 @@ const LabUserDashboard = () => {
                     {reportFilter !== "processing" && (
                       <TableCell
                         style={{ width: `${getColWidth("downloadPdf") || 135}px`, minWidth: "120px" }}
-                        className="text-[13px] whitespace-nowrap py-2 px-3 border-l border-border/40"
+                        className="text-[13px] whitespace-nowrap py-2 px-3 text-center border-l border-border/40"
                       >
                         {renderCellContent("downloadPdf", specimen, idx)}
                       </TableCell>

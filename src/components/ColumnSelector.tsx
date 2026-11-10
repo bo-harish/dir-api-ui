@@ -14,7 +14,7 @@ export interface ColumnDefinition {
 export const DEFAULT_COLUMNS: ColumnDefinition[] = [
   { id: "lcId", label: "LC ID", visible: true },
   { id: "specimenId", label: "Specimen ID", visible: true, canHide: false },
-  { id: "reportStatus", label: "ReportStatus", visible: true },
+  { id: "reportStatus", label: "Report Status", visible: true },
   { id: "panelName", label: "Panel Name", visible: true },
   { id: "reportTitle", label: "Report Title", visible: true },
   { id: "patientFirstName", label: "Patient First Name", visible: true },
@@ -229,13 +229,12 @@ export const ColumnSelector: React.FC<ColumnSelectorProps> = ({ columns, onApply
                   onDragOver={(e) => handleDragOver(e, actualIndex)}
                   onDragEnd={handleDragEnd}
                   onClick={() => !isMandatory && handleToggle(col.id)}
-                  className={`group flex items-center gap-2 py-1.5 px-1.5 rounded-md transition-colors ${
-                    isDragging
-                      ? "opacity-40 bg-accent/60"
-                      : isMandatory
-                        ? "hover:bg-muted/40 cursor-default"
-                        : "hover:bg-muted/70 active:bg-muted cursor-pointer"
-                  }`}
+                  className={`group flex items-center gap-2 py-1.5 px-1.5 rounded-md transition-colors ${isDragging
+                    ? "opacity-40 bg-accent/60"
+                    : isMandatory
+                      ? "hover:bg-muted/40 cursor-default"
+                      : "hover:bg-muted/70 active:bg-muted cursor-pointer"
+                    }`}
                 >
                   {/* Drag handle */}
                   <div
@@ -252,13 +251,12 @@ export const ColumnSelector: React.FC<ColumnSelectorProps> = ({ columns, onApply
                     aria-checked={col.visible}
                     aria-disabled={isMandatory}
                     title={isMandatory ? "Mandatory field" : undefined}
-                    className={`h-4 w-4 shrink-0 rounded-[4px] flex items-center justify-center transition-all ${
-                      isMandatory
-                        ? "bg-[#00a67e]/60 text-white cursor-not-allowed"
-                        : col.visible
-                          ? "bg-[#00a67e] text-white"
-                          : "border border-slate-300 dark:border-slate-600 bg-background"
-                    }`}
+                    className={`h-4 w-4 shrink-0 rounded-[4px] flex items-center justify-center transition-all ${isMandatory
+                      ? "bg-[#00a67e]/60 text-white cursor-not-allowed"
+                      : col.visible
+                        ? "bg-[#00a67e] text-white"
+                        : "border border-slate-300 dark:border-slate-600 bg-background"
+                      }`}
                   >
                     {col.visible && <Check className="h-3 w-3 stroke-[3]" />}
                   </div>
@@ -266,11 +264,10 @@ export const ColumnSelector: React.FC<ColumnSelectorProps> = ({ columns, onApply
                   {/* Column Label */}
                   <div className="flex items-center gap-1.5 flex-1 min-w-0">
                     <span
-                      className={`text-[13px] font-medium truncate ${
-                        isMandatory
-                          ? "text-slate-600 dark:text-slate-400"
-                          : "text-slate-700 dark:text-slate-200"
-                      }`}
+                      className={`text-[13px] font-medium truncate ${isMandatory
+                        ? "text-slate-600 dark:text-slate-400"
+                        : "text-slate-700 dark:text-slate-200"
+                        }`}
                     >
                       {col.label}
                     </span>
