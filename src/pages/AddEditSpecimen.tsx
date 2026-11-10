@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,18 @@ import { useSpecimenContext } from "@/context/SpecimenContext";
 import { Specimen, PrescribedMedication } from "@/data/mockSpecimens";
 import { searchDrugBank, DrugBankRecord } from "@/data/mockDrugBank";
 import { toast } from "sonner";
+
+export const PANEL_OPTIONS = [
+  "Comprehensive PGx Panel",
+  "Targeted PGx Panel",
+  "Cardio PGx Panel",
+  "Cardiology Panel",
+  "Neuro PGx Panel",
+  "Psychiatric PGx Panel",
+  "Pain PGx Panel",
+  "Infectious Disease Panel",
+  "Custom PGx Panel",
+];
 
 export const AddEditSpecimen = () => {
   const { specimenId } = useParams<{ specimenId?: string }>();
@@ -98,6 +110,13 @@ export const AddEditSpecimen = () => {
     results: [],
     totalCount: 0,
   });
+
+  const availablePanels = useMemo(() => {
+    if (formData.panelName && !PANEL_OPTIONS.includes(formData.panelName)) {
+      return [formData.panelName, ...PANEL_OPTIONS];
+    }
+    return PANEL_OPTIONS;
+  }, [formData.panelName]);
 
   useEffect(() => {
     if (drugSearchQuery.trim()) {
@@ -480,13 +499,24 @@ export const AddEditSpecimen = () => {
                 <Label htmlFor="panelName" className="text-xs font-semibold text-foreground">
                   Panel Name <span className="text-destructive">*</span>
                 </Label>
-                <Input
-                  id="panelName"
+                <Select
                   value={formData.panelName}
-                  onChange={(e) => handleChange("panelName", e.target.value)}
-                  placeholder="e.g. Cardiology Panel"
-                  className={`mt-1 h-9 ${errors.panelName ? "border-destructive focus-visible:ring-destructive" : ""}`}
-                />
+                  onValueChange={(val) => handleChange("panelName", val)}
+                >
+                  <SelectTrigger
+                    id="panelName"
+                    className={`mt-1 h-9 ${errors.panelName ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                  >
+                    <SelectValue placeholder="Select panel name" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {availablePanels.map((panel) => (
+                      <SelectItem key={panel} value={panel}>
+                        {panel}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {errors.panelName && (
                   <p className="text-[11px] text-destructive mt-1 font-medium">{errors.panelName}</p>
                 )}
