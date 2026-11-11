@@ -948,7 +948,7 @@ const LabUserDashboard = () => {
                   <span>Edit</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => navigate(`/lab-user/specimen/${specimen.id}/report`)}
+                  onClick={() => navigate(`/lab-user/specimen/${specimen.id}`)}
                   className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium cursor-pointer rounded text-foreground hover:bg-accent hover:text-white focus:bg-accent focus:text-white transition-colors group"
                 >
                   <Eye className="h-3.5 w-3.5 text-muted-foreground group-hover:text-white group-focus:text-white transition-colors" />
