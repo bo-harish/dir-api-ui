@@ -46,7 +46,7 @@ const IMPORT_CONFIG: Record<
     subtitle: "Upload an Excel sheet (.xlsx) containing patient and specimen intake records.",
     formats: ".xlsx",
     extensions: [".xlsx"],
-    sampleTemplate: "specimen_template.xlsx",
+    sampleTemplate: "PGx_Common_Rows_Distinct_Columns.xlsx",
     icon: UploadCloud,
     iconColor: "text-primary",
     badgeBg: "bg-primary/10",
@@ -255,15 +255,24 @@ export const ImportModal: React.FC<ImportModalProps> = ({ open, onOpenChange, ty
               <button
                 type="button"
                 onClick={() => {
-                  const blob = new Blob(["id,specimenId,result\n1,TEST001,Negative\n"], {
-                    type: "text/csv;charset=utf-8;",
-                  });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = config.sampleTemplate;
-                  a.click();
-                  URL.revokeObjectURL(url);
+                  if (type === "specimen" || config.sampleTemplate.endsWith(".xlsx")) {
+                    const a = document.createElement("a");
+                    a.href = `${import.meta.env.BASE_URL}${config.sampleTemplate}`;
+                    a.download = config.sampleTemplate;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  } else {
+                    const blob = new Blob(["id,specimenId,result\n1,TEST001,Negative\n"], {
+                      type: "text/csv;charset=utf-8;",
+                    });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = config.sampleTemplate;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }
                 }}
                 className="inline-flex items-center gap-1.5 text-primary hover:text-primary/80 hover:underline font-medium cursor-pointer transition-colors"
               >

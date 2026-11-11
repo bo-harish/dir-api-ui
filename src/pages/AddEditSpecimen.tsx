@@ -48,6 +48,60 @@ export const PANEL_OPTIONS = [
   "Custom PGx Panel",
 ];
 
+export const US_STATES = [
+  { code: "AL", name: "Alabama" },
+  { code: "AK", name: "Alaska" },
+  { code: "AZ", name: "Arizona" },
+  { code: "AR", name: "Arkansas" },
+  { code: "CA", name: "California" },
+  { code: "CO", name: "Colorado" },
+  { code: "CT", name: "Connecticut" },
+  { code: "DE", name: "Delaware" },
+  { code: "DC", name: "District of Columbia" },
+  { code: "FL", name: "Florida" },
+  { code: "GA", name: "Georgia" },
+  { code: "HI", name: "Hawaii" },
+  { code: "ID", name: "Idaho" },
+  { code: "IL", name: "Illinois" },
+  { code: "IN", name: "Indiana" },
+  { code: "IA", name: "Iowa" },
+  { code: "KS", name: "Kansas" },
+  { code: "KY", name: "Kentucky" },
+  { code: "LA", name: "Louisiana" },
+  { code: "ME", name: "Maine" },
+  { code: "MD", name: "Maryland" },
+  { code: "MA", name: "Massachusetts" },
+  { code: "MI", name: "Michigan" },
+  { code: "MN", name: "Minnesota" },
+  { code: "MS", name: "Mississippi" },
+  { code: "MO", name: "Missouri" },
+  { code: "MT", name: "Montana" },
+  { code: "NE", name: "Nebraska" },
+  { code: "NV", name: "Nevada" },
+  { code: "NH", name: "New Hampshire" },
+  { code: "NJ", name: "New Jersey" },
+  { code: "NM", name: "New Mexico" },
+  { code: "NY", name: "New York" },
+  { code: "NC", name: "North Carolina" },
+  { code: "ND", name: "North Dakota" },
+  { code: "OH", name: "Ohio" },
+  { code: "OK", name: "Oklahoma" },
+  { code: "OR", name: "Oregon" },
+  { code: "PA", name: "Pennsylvania" },
+  { code: "RI", name: "Rhode Island" },
+  { code: "SC", name: "South Carolina" },
+  { code: "SD", name: "South Dakota" },
+  { code: "TN", name: "Tennessee" },
+  { code: "TX", name: "Texas" },
+  { code: "UT", name: "Utah" },
+  { code: "VT", name: "Vermont" },
+  { code: "VA", name: "Virginia" },
+  { code: "WA", name: "Washington" },
+  { code: "WV", name: "West Virginia" },
+  { code: "WI", name: "Wisconsin" },
+  { code: "WY", name: "Wyoming" },
+];
+
 export const AddEditSpecimen = () => {
   const { specimenId } = useParams<{ specimenId?: string }>();
   const navigate = useNavigate();
@@ -814,13 +868,30 @@ export const AddEditSpecimen = () => {
                 <Label htmlFor="facilityState" className="text-xs font-semibold text-foreground">
                   Facility State <span className="text-destructive">*</span>
                 </Label>
-                <Select value={formData.facilityState} onValueChange={(val) => { handleChange("facilityState", val); handleChange("providerState", val); }}>
-                  <SelectTrigger id="facilityState" className={`mt-1 h-9 ${errors.facilityState ? "border-destructive focus-visible:ring-destructive" : ""}`}>
+                <Select
+                  value={
+                    US_STATES.find(
+                      (s) =>
+                        s.code.toLowerCase() === formData.facilityState?.toLowerCase() ||
+                        s.name.toLowerCase() === formData.facilityState?.toLowerCase()
+                    )?.code || formData.facilityState
+                  }
+                  onValueChange={(val) => {
+                    handleChange("facilityState", val);
+                    handleChange("providerState", val);
+                  }}
+                >
+                  <SelectTrigger
+                    id="facilityState"
+                    className={`mt-1 h-9 ${errors.facilityState ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                  >
                     <SelectValue placeholder="Select state" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
-                    {["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"].map((st) => (
-                      <SelectItem key={st} value={st}>{st}</SelectItem>
+                    {US_STATES.map((st) => (
+                      <SelectItem key={st.code} value={st.code}>
+                        {st.name} ({st.code})
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1009,12 +1080,12 @@ export const AddEditSpecimen = () => {
               ) : (
                 !isSearchingDrug && (
                   <div className={`py-6 text-center text-sm border border-dashed rounded-lg ${errors.medications ? "border-destructive text-destructive bg-destructive/5" : "border-border text-muted-foreground"}`}>
-                    No medications prescribed yet. Click "+ Add Medication" below to search and add from DrugBank.
+                    No medications prescribed yet. Click "Add Medication" below to search and add from DrugBank.
                   </div>
                 )
               )}
 
-              {/* + Add Medication Button Bar - Image 2 */}
+              {/* Add Medication Button Bar - Image 2 */}
               {!isSearchingDrug && (
                 <button
                   type="button"
@@ -1025,7 +1096,7 @@ export const AddEditSpecimen = () => {
                   className="w-full flex items-center gap-2 px-4 py-3 rounded-lg border border-dashed border-border hover:border-primary/60 hover:bg-primary/5 text-sm font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer"
                 >
                   <Plus className="h-4 w-4 text-primary" />
-                  <span>+ Add Medication</span>
+                  <span>Add Medication</span>
                 </button>
               )}
             </CardContent>
