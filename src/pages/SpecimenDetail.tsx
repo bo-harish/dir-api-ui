@@ -164,7 +164,7 @@ const SpecimenDetail = () => {
               {specimen.panelName ? `${specimen.panelName} · ${specimen.specimenId}` : `Specimen ${specimen.specimenId}`}
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              LC ID: <span className="font-medium text-foreground">{specimen.lcId || "—"}</span>
+              ID: <span className="font-medium text-foreground">{specimen.lcId ? specimen.lcId.replace(/^LC-/i, "") : "—"}</span>
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
@@ -254,10 +254,6 @@ const SpecimenDetail = () => {
                 <span className="font-semibold text-foreground">{specimen.dateOfBirth || "—"}</span>
               </span>
               <span>
-                <span className="text-muted-foreground">LC ID: </span>
-                <span className="font-semibold text-foreground">{specimen.lcId || "—"}</span>
-              </span>
-              <span>
                 <span className="text-muted-foreground">Reported: </span>
                 <span className="font-semibold text-foreground">{specimen.reported || "—"}</span>
               </span>
@@ -299,10 +295,10 @@ const SpecimenDetail = () => {
           </div>
 
           {showMore && (
-            <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-3.5 text-sm">
+            <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-3.5 text-[13px]">
               {/* Column 1: Identification & Workflow */}
               <div className="space-y-3.5">
-                <DetailRow label="LC ID:" value={specimen.lcId || "—"} />
+                <DetailRow label="ID:" value={specimen.lcId ? specimen.lcId.replace(/^LC-/i, "") : "—"} />
                 <DetailRow label="Specimen ID:" value={specimen.specimenId} />
                 <DetailRow label="Report Status:" value={displayStatus} />
                 <DetailRow label="Panel Name:" value={specimen.panelName || "Comprehensive PGx Panel"} />
@@ -329,14 +325,8 @@ const SpecimenDetail = () => {
                 <DetailRow label="Provider:" value={specimen.provider || "—"} />
                 <DetailRow label="Provider Title:" value={specimen.providerTitle || "—"} />
                 <DetailRow label="Provider NPI:" value={specimen.providerNPI || "—"} />
-                <DetailRow label="Provider Location:" value={specimen.facilityAddress || "—"} />
-                <DetailRow label="Provider State:" value={specimen.providerState || "—"} />
                 <DetailRow label="Collection Method Code:" value={specimen.collectionMethodCode || "—"} />
-                <DetailRow label="Collection Method Label:" value={specimen.collectionMethodLabel || "—"} />
-                <DetailRow label="Current Medications List:" value={specimen.currentMedicationsList || "—"} />
-                <DetailRow label="Current Medications Model Name:" value={specimen.currentMedicationsModelName || "—"} />
-                <DetailRow label="Current Medications Reason:" value={specimen.currentMedicationsReason || "—"} />
-                <DetailRow label="Current Medications Comments:" value={specimen.currentMedicationsComments || "—"} />
+                <DetailRow label="Collection Method:" value={specimen.collectionMethodLabel || "—"} />
               </div>
             </div>
           )}
@@ -345,7 +335,7 @@ const SpecimenDetail = () => {
         {/* Tabs */}
         <Tabs defaultValue="results">
           <TabsList className="bg-transparent border-b border-border w-full justify-start rounded-none h-auto p-0 gap-0">
-            {["Results", "Ordered Panels", "Diagnosis Codes", "Internal Notes", "Provider Notes", "History"].map((tab) => (
+            {["Results", "Ordered Panels"].map((tab) => (
               <TabsTrigger
                 key={tab}
                 value={tab.toLowerCase().replace(/\s+/g, "-")}
@@ -410,7 +400,7 @@ const SpecimenDetail = () => {
             </div>
           </TabsContent>
 
-          {["ordered-panels", "diagnosis-codes", "internal-notes", "provider-notes", "history"].map((tab) => (
+          {["ordered-panels"].map((tab) => (
             <TabsContent key={tab} value={tab} className="mt-6">
               <p className="text-sm text-muted-foreground">No data available.</p>
             </TabsContent>
@@ -422,9 +412,9 @@ const SpecimenDetail = () => {
 };
 
 const DetailRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex justify-between items-start gap-4">
-    <span className="text-muted-foreground text-xs shrink-0">{label}</span>
-    <span className="font-medium text-foreground text-xs text-right break-words">{value || "—"}</span>
+  <div className="flex justify-between items-start gap-4 text-[13px]">
+    <span className="text-muted-foreground shrink-0">{label}</span>
+    <span className="font-medium text-foreground text-right break-words">{value || "—"}</span>
   </div>
 );
 

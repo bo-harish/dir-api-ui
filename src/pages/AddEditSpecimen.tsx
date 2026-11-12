@@ -110,7 +110,7 @@ export const AddEditSpecimen = () => {
   const isEditing = Boolean(specimenId);
   const existingSpecimen = specimenId ? getSpecimenById(specimenId) : undefined;
 
-  // Form state covering all values from LC ID to Current Medications Comments
+  // Form state covering all values from ID to Current Medications Comments
   const [formData, setFormData] = useState({
     // Specimen & Tracking
     lcId: "",
@@ -252,7 +252,7 @@ export const AddEditSpecimen = () => {
       });
       setFormData((prev) => ({
         ...prev,
-        lcId: `LC-${Math.floor(4300 + Math.random() * 200)}`,
+        lcId: `${Math.floor(4300 + Math.random() * 200)}`,
         specimenId: `SP-${Math.floor(100000 + Math.random() * 900000)}`,
         collected: today,
         received: today,

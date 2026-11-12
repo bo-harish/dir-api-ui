@@ -82,7 +82,7 @@ import { ColumnSelector, DEFAULT_COLUMNS, ColumnDefinition } from "@/components/
 import { ImportModal, ImportType } from "@/components/ImportModal";
 import { Checkbox } from "@/components/ui/checkbox";
 
-const LOCAL_STORAGE_KEY = "lab_user_table_columns_v7";
+const LOCAL_STORAGE_KEY = "lab_user_table_columns_v10";
 const LOCAL_STORAGE_WIDTHS_KEY = "lab_user_column_widths_v2";
 
 const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
@@ -107,18 +107,12 @@ const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   facilityCountry: 120,
   facilityZip: 110,
   provider: 160,
-  providerLocation: 180,
-  providerState: 110,
   gender: 90,
   mrn: 110,
   collectionMethodCode: 150,
   collectionMethodLabel: 160,
   providerTitle: 110,
   providerNPI: 120,
-  currentMedicationsList: 170,
-  currentMedicationsModelName: 170,
-  currentMedicationsReason: 170,
-  currentMedicationsComments: 170,
   lastUpdated: 130,
   downloadPdf: 140,
   exception: 80,
@@ -143,6 +137,9 @@ const getInitialColumns = (): ColumnDefinition[] => {
       localStorage.removeItem("lab_user_table_columns_v4");
       localStorage.removeItem("lab_user_table_columns_v5");
       localStorage.removeItem("lab_user_table_columns_v6");
+      localStorage.removeItem("lab_user_table_columns_v7");
+      localStorage.removeItem("lab_user_table_columns_v8");
+      localStorage.removeItem("lab_user_table_columns_v9");
     } catch (e) {}
 
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -330,7 +327,8 @@ const LabUserDashboard = () => {
     if (!specimenToUnflag) return;
     const target = specimenToUnflag;
     updateSpecimen(target.id, { flagged: false });
-    toast.info(`Specimen ${target.lcId || target.specimenId} has been unflagged.`);
+    const displayId = target.lcId ? target.lcId.replace(/^LC-/i, "") : target.specimenId;
+    toast.info(`Specimen ${displayId} has been unflagged.`);
     setSpecimenToUnflag(null);
   };
 
@@ -339,7 +337,8 @@ const LabUserDashboard = () => {
       setSpecimenToUnflag(specimen);
     } else {
       updateSpecimen(specimen.id, { flagged: true });
-      toast.success(`Specimen ${specimen.lcId || specimen.specimenId} has been flagged.`);
+      const displayId = specimen.lcId ? specimen.lcId.replace(/^LC-/i, "") : specimen.specimenId;
+      toast.success(`Specimen ${displayId} has been flagged.`);
     }
   };
 
@@ -678,7 +677,9 @@ const LabUserDashboard = () => {
 
   const renderCellContent = (colId: string, specimen: Specimen, idx: number) => {
     switch (colId) {
-      case "lcId":
+      case "lcId": {
+        const cleanId = specimen.lcId ? specimen.lcId.replace(/^LC-/i, "") : "—";
+        const targetLabel = cleanId !== "—" ? cleanId : specimen.specimenId;
         return (
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 flex items-center justify-center shrink-0">
@@ -687,7 +688,7 @@ const LabUserDashboard = () => {
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      aria-label={`Unflag specimen ${specimen.lcId || specimen.specimenId}`}
+                      aria-label={`Unflag specimen ${targetLabel}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleToggleFlag(specimen);
@@ -702,7 +703,7 @@ const LabUserDashboard = () => {
               ) : (
                 <button
                   type="button"
-                  aria-label={`Flag specimen ${specimen.lcId || specimen.specimenId}`}
+                  aria-label={`Flag specimen ${targetLabel}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleToggleFlag(specimen);
@@ -714,9 +715,10 @@ const LabUserDashboard = () => {
                 </button>
               )}
             </div>
-            <span className="font-medium">{specimen.lcId || "—"}</span>
+            <span className="font-medium">{cleanId}</span>
           </div>
         );
+      }
       case "specimenId":
         return (
           <span
@@ -790,10 +792,6 @@ const LabUserDashboard = () => {
         return specimen.facilityCountry || "USA";
       case "facilityZip":
         return specimen.facilityZip || "00045";
-      case "providerLocation":
-        return specimen.facilityAddress || "—";
-      case "providerState":
-        return specimen.providerState || "NE";
       case "provider":
         return specimen.provider;
       case "dateOfBirth":
@@ -825,14 +823,6 @@ const LabUserDashboard = () => {
         return specimen.providerTitle;
       case "providerNPI":
         return specimen.providerNPI;
-      case "currentMedicationsList":
-        return specimen.currentMedicationsList || "—";
-      case "currentMedicationsModelName":
-        return specimen.currentMedicationsModelName || "—";
-      case "currentMedicationsReason":
-        return specimen.currentMedicationsReason || "—";
-      case "currentMedicationsComments":
-        return specimen.currentMedicationsComments || "—";
       case "lastUpdated":
         return specimen.lastUpdated;
       case "downloadPdf": {
@@ -1840,7 +1830,7 @@ const LabUserDashboard = () => {
             <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed">
               Are you sure you want to unflag specimen{" "}
               <strong className="text-foreground font-semibold">
-                {specimenToUnflag?.lcId || specimenToUnflag?.specimenId}
+                {specimenToUnflag?.lcId ? specimenToUnflag.lcId.replace(/^LC-/i, "") : specimenToUnflag?.specimenId}
               </strong>
               {specimenToUnflag?.patientFirstName ? (
                 <> ({specimenToUnflag.patientFirstName} {specimenToUnflag.patientLastName})</>

@@ -12,7 +12,7 @@ export interface ColumnDefinition {
 }
 
 export const DEFAULT_COLUMNS: ColumnDefinition[] = [
-  { id: "lcId", label: "LC ID", visible: true },
+  { id: "lcId", label: "ID", visible: true },
   { id: "specimenId", label: "Specimen ID", visible: true, canHide: false },
   { id: "reportStatus", label: "Report Status", visible: true },
   { id: "panelName", label: "Panel Name", visible: true },
@@ -25,18 +25,12 @@ export const DEFAULT_COLUMNS: ColumnDefinition[] = [
   { id: "facility", label: "Facility", visible: true },
   { id: "facilityAddress", label: "Facility Address", visible: true },
   { id: "provider", label: "Provider", visible: true },
-  { id: "providerLocation", label: "Provider Location", visible: false },
-  { id: "providerState", label: "Provider State", visible: false },
   { id: "gender", label: "Gender", visible: false },
   { id: "mrn", label: "MRN", visible: false },
   { id: "collectionMethodCode", label: "Collection Method Code", visible: false },
-  { id: "collectionMethodLabel", label: "Collection Method Label", visible: false },
+  { id: "collectionMethodLabel", label: "Collection Method", visible: false },
   { id: "providerTitle", label: "Provider Title", visible: false },
   { id: "providerNPI", label: "Provider NPI", visible: false },
-  { id: "currentMedicationsList", label: "Current Medications List", visible: false },
-  { id: "currentMedicationsModelName", label: "Current Medications Model Name", visible: false },
-  { id: "currentMedicationsReason", label: "Current Medications Reason", visible: false },
-  { id: "currentMedicationsComments", label: "Current Medications Comments", visible: false },
   { id: "lastUpdated", label: "Last Updated", visible: false },
 ];
 

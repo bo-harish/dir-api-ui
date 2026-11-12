@@ -11,7 +11,7 @@ interface SpecimenContextType {
   resetToDefault: () => void;
 }
 
-const STORAGE_KEY = "lab_user_specimens_data_v12";
+const STORAGE_KEY = "lab_user_specimens_data_v13";
 
 const cleanOldStorage = () => {
   try {
@@ -26,6 +26,7 @@ const cleanOldStorage = () => {
     localStorage.removeItem("lab_user_specimens_data_v9");
     localStorage.removeItem("lab_user_specimens_data_v10");
     localStorage.removeItem("lab_user_specimens_data_v11");
+    localStorage.removeItem("lab_user_specimens_data_v12");
   } catch (e) {}
 };
 
@@ -56,7 +57,10 @@ export const SpecimenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           parsed.some((s) => s.status?.toLowerCase()?.includes("awaiting")) &&
           parsed.some((s) => s.flagged !== undefined)
         ) {
-          return parsed;
+          return parsed.map((s) => ({
+            ...s,
+            lcId: s.lcId ? s.lcId.replace(/^LC-/i, "") : s.lcId,
+          }));
         }
       }
     } catch (e) {
@@ -81,7 +85,7 @@ export const SpecimenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const nextId = String(Date.now());
     const newSpecimen: Specimen = {
       id: nextId,
-      lcId: data.lcId || `LC-${Math.floor(4000 + Math.random() * 900)}`,
+      lcId: data.lcId ? data.lcId.replace(/^LC-/i, "") : `${Math.floor(4000 + Math.random() * 900)}`,
       specimenId: data.specimenId || `SP-${Date.now().toString().slice(-6)}`,
       status: data.status || "New",
       patientFirstName: data.patientFirstName || "",
