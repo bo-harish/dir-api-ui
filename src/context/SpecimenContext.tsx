@@ -27,7 +27,7 @@ const cleanOldStorage = () => {
     localStorage.removeItem("lab_user_specimens_data_v10");
     localStorage.removeItem("lab_user_specimens_data_v11");
     localStorage.removeItem("lab_user_specimens_data_v12");
-  } catch (e) {}
+  } catch (e) { }
 };
 
 const SpecimenContext = createContext<SpecimenContextType | null>(null);
@@ -149,7 +149,7 @@ export const SpecimenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSpecimens(mockSpecimens);
     try {
       localStorage.removeItem(STORAGE_KEY);
-    } catch {}
+    } catch { }
     toast.info("Specimens reset to default data.");
   };
 

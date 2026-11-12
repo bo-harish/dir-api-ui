@@ -47,6 +47,18 @@ export interface Specimen {
   hasView: boolean;
   providerState?: string;
   prescribedMedications?: PrescribedMedication[];
+  // Laboratory Profile
+  serviceType?: string;
+  laboratoryName?: string;
+  labLogo?: string;
+  labPhone?: string;
+  labFax?: string;
+  labEmail?: string;
+  labDirector?: string;
+  timeZone?: string;
+  timeZoneOffset?: string;
+  cliaNumber?: string;
+  labAddress?: string;
 }
 
 export const mockSpecimens: Specimen[] = [
