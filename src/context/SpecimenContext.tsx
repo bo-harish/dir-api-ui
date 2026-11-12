@@ -11,7 +11,7 @@ interface SpecimenContextType {
   resetToDefault: () => void;
 }
 
-const STORAGE_KEY = "lab_user_specimens_data_v14";
+const STORAGE_KEY = "lab_user_specimens_data_v15";
 
 export const formatDateTime = (date: Date = new Date()): string => {
   const mm = String(date.getMonth() + 1).padStart(2, "0");
@@ -50,6 +50,7 @@ const cleanOldStorage = () => {
     localStorage.removeItem("lab_user_specimens_data_v11");
     localStorage.removeItem("lab_user_specimens_data_v12");
     localStorage.removeItem("lab_user_specimens_data_v13");
+    localStorage.removeItem("lab_user_specimens_data_v14");
   } catch (e) { }
 };
 
@@ -86,6 +87,7 @@ export const SpecimenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             collected: ensureDateTime(s.collected, "5:10 AM"),
             received: ensureDateTime(s.received, "9:15 AM"),
             reported: ensureDateTime(s.reported, "1:15 PM"),
+            lastUpdated: ensureDateTime(s.lastUpdated, "5:10 AM"),
           }));
         }
       }
@@ -122,7 +124,7 @@ export const SpecimenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       collected: data.collected ? ensureDateTime(data.collected, "5:10 AM") : formatDateTime(),
       received: data.received ? ensureDateTime(data.received, "9:15 AM") : formatDateTime(),
       reported: data.reported ? ensureDateTime(data.reported, "1:15 PM") : "",
-      lastUpdated: new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }),
+      lastUpdated: data.lastUpdated ? ensureDateTime(data.lastUpdated, "5:10 AM") : formatDateTime(),
       facility: data.facility || "Recovery Unplugged",
       facilityAddress: data.facilityAddress || "",
       provider: data.provider || "",
@@ -153,11 +155,7 @@ export const SpecimenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           return {
             ...s,
             ...data,
-            lastUpdated: new Date().toLocaleDateString("en-US", {
-              month: "2-digit",
-              day: "2-digit",
-              year: "numeric",
-            }),
+            lastUpdated: formatDateTime(),
           };
         }
         return s;

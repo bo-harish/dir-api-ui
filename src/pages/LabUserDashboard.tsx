@@ -83,7 +83,7 @@ import { ImportModal, ImportType } from "@/components/ImportModal";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const LOCAL_STORAGE_KEY = "lab_user_table_columns_v10";
-const LOCAL_STORAGE_WIDTHS_KEY = "lab_user_column_widths_v3";
+const LOCAL_STORAGE_WIDTHS_KEY = "lab_user_column_widths_v4";
 
 const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   lcId: 110,
@@ -113,7 +113,7 @@ const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   collectionMethodLabel: 160,
   providerTitle: 110,
   providerNPI: 120,
-  lastUpdated: 130,
+  lastUpdated: 165,
   downloadPdf: 140,
   exception: 80,
   action: 70,
@@ -124,6 +124,7 @@ const getInitialColumnWidths = (): Record<string, number> => {
     try {
       localStorage.removeItem("lab_user_column_widths_v1");
       localStorage.removeItem("lab_user_column_widths_v2");
+      localStorage.removeItem("lab_user_column_widths_v3");
     } catch (e) {}
 
     const saved = localStorage.getItem(LOCAL_STORAGE_WIDTHS_KEY);
@@ -809,7 +810,7 @@ const LabUserDashboard = () => {
       case "providerNPI":
         return specimen.providerNPI;
       case "lastUpdated":
-        return specimen.lastUpdated;
+        return ensureDateTime(specimen.lastUpdated, "5:10 AM");
       case "downloadPdf": {
         const displayStatus = getDisplayStatus(specimen.status, specimen.hasView);
         if (displayStatus === "Failed") return null;
@@ -894,7 +895,7 @@ const LabUserDashboard = () => {
                 <AlertCircle className="h-5 w-5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-sm whitespace-normal break-words text-xs leading-relaxed">
+            <TooltipContent side="top" align="start" className="max-w-sm whitespace-normal break-words text-left text-xs leading-relaxed">
               Drug(s) D1,S2 could not be resolved to a valid DrugBank ID. As a result, all requested medications in this request will be excluded from the PDF report.
             </TooltipContent>
           </Tooltip>

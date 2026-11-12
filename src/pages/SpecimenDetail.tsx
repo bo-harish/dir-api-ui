@@ -291,7 +291,7 @@ const SpecimenDetail = () => {
                 <DetailRow label="Report Status:" value={displayStatus} />
                 <DetailRow label="Panel Name:" value={specimen.panelName || "Comprehensive PGx Panel"} />
                 <DetailRow label="Report Title:" value={specimen.reportTitle || "Pharmacogenomics Report"} />
-                <DetailRow label="Last Updated:" value={specimen.lastUpdated || "—"} />
+                <DetailRow label="Last Updated:" value={ensureDateTime(specimen.lastUpdated, "5:10 AM") || "—"} />
               </div>
 
               {/* Column 2: Patient & Timeline */}
