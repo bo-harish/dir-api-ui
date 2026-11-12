@@ -31,7 +31,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import LabHeader from "@/components/LabHeader";
-import { useSpecimenContext } from "@/context/SpecimenContext";
+import { useSpecimenContext, formatDateTime, ensureDateTime } from "@/context/SpecimenContext";
 import { Specimen, PrescribedMedication } from "@/data/mockSpecimens";
 import { searchDrugBank, DrugBankRecord } from "@/data/mockDrugBank";
 import { toast } from "sonner";
@@ -245,17 +245,13 @@ export const AddEditSpecimen = () => {
       }
     } else if (!isEditing) {
       // Pre-fill smart defaults for new specimen
-      const today = new Date().toLocaleDateString("en-US", {
-        month: "2-digit",
-        day: "2-digit",
-        year: "numeric",
-      });
+      const now = formatDateTime();
       setFormData((prev) => ({
         ...prev,
         lcId: `${Math.floor(4300 + Math.random() * 200)}`,
         specimenId: `SP-${Math.floor(100000 + Math.random() * 900000)}`,
-        collected: today,
-        received: today,
+        collected: now,
+        received: now,
       }));
       setPrescribedMedications([]);
     }
@@ -620,7 +616,7 @@ export const AddEditSpecimen = () => {
                   type="text"
                   value={formData.collected}
                   onChange={(e) => handleChange("collected", e.target.value)}
-                  placeholder="MM/DD/YYYY"
+                  placeholder="MM/DD/YYYY h:mm A"
                   className={`mt-1 h-9 ${errors.collected ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 />
                 {errors.collected && (
@@ -637,7 +633,7 @@ export const AddEditSpecimen = () => {
                   type="text"
                   value={formData.received}
                   onChange={(e) => handleChange("received", e.target.value)}
-                  placeholder="MM/DD/YYYY"
+                  placeholder="MM/DD/YYYY h:mm A"
                   className={`mt-1 h-9 ${errors.received ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 />
                 {errors.received && (

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertCircle, Plus } from "lucide-react";
-import { useSpecimenContext } from "@/context/SpecimenContext";
+import { useSpecimenContext, formatDateTime, ensureDateTime } from "@/context/SpecimenContext";
 import { Specimen } from "@/data/mockSpecimens";
 import {
   Select,
@@ -83,7 +83,7 @@ import { ImportModal, ImportType } from "@/components/ImportModal";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const LOCAL_STORAGE_KEY = "lab_user_table_columns_v10";
-const LOCAL_STORAGE_WIDTHS_KEY = "lab_user_column_widths_v2";
+const LOCAL_STORAGE_WIDTHS_KEY = "lab_user_column_widths_v3";
 
 const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   lcId: 110,
@@ -95,9 +95,9 @@ const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   dateOfBirth: 110,
   patientFirstName: 130,
   patientLastName: 130,
-  collected: 110,
-  received: 110,
-  reported: 110,
+  collected: 165,
+  received: 165,
+  reported: 165,
   facility: 160,
   facilityAddress: 240,
   facilityAddressLine1: 170,
@@ -121,6 +121,11 @@ const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
 
 const getInitialColumnWidths = (): Record<string, number> => {
   try {
+    try {
+      localStorage.removeItem("lab_user_column_widths_v1");
+      localStorage.removeItem("lab_user_column_widths_v2");
+    } catch (e) {}
+
     const saved = localStorage.getItem(LOCAL_STORAGE_WIDTHS_KEY);
     if (saved) {
       return JSON.parse(saved);
@@ -347,11 +352,7 @@ const LabUserDashboard = () => {
       status: "Released",
       hasView: true,
       hasDownload: true,
-      reported: new Date().toLocaleDateString("en-US", {
-        month: "2-digit",
-        day: "2-digit",
-        year: "numeric",
-      }),
+      reported: formatDateTime(new Date()),
     });
     toast.success(`Report for specimen ${specimen.specimenId} has been released!`);
   };
@@ -363,11 +364,7 @@ const LabUserDashboard = () => {
         status: "Awaiting Release",
         hasDownload: true,
         hasView: false,
-        reported: new Date().toLocaleDateString("en-US", {
-          month: "2-digit",
-          day: "2-digit",
-          year: "numeric",
-        }),
+        reported: formatDateTime(new Date()),
       });
       toast.success(`Report generated successfully for ${specimen.specimenId}!`);
     }, 800);
@@ -380,11 +377,7 @@ const LabUserDashboard = () => {
         status: "Awaiting Release",
         hasDownload: true,
         hasView: false,
-        reported: new Date().toLocaleDateString("en-US", {
-          month: "2-digit",
-          day: "2-digit",
-          year: "numeric",
-        }),
+        reported: formatDateTime(new Date()),
       });
       toast.success(`Report regenerated successfully for ${specimen.specimenId}!`);
     }, 800);
@@ -593,11 +586,7 @@ const LabUserDashboard = () => {
           status: "Awaiting Release",
           hasDownload: true,
           hasView: false,
-          reported: new Date().toLocaleDateString("en-US", {
-            month: "2-digit",
-            day: "2-digit",
-            year: "numeric",
-          }),
+          reported: formatDateTime(new Date()),
         });
       });
       toast.success(`Successfully generated reports for ${count} specimen(s)!`);
@@ -615,11 +604,7 @@ const LabUserDashboard = () => {
           status: "Awaiting Release",
           hasDownload: true,
           hasView: false,
-          reported: new Date().toLocaleDateString("en-US", {
-            month: "2-digit",
-            day: "2-digit",
-            year: "numeric",
-          }),
+          reported: formatDateTime(new Date()),
         });
       });
       toast.success(`Successfully regenerated reports for ${count} specimen(s)!`);
@@ -755,11 +740,11 @@ const LabUserDashboard = () => {
       case "reportTitle":
         return specimen.reportTitle || "Pharmacogenomics Report";
       case "collected":
-        return specimen.collected;
+        return ensureDateTime(specimen.collected, "5:10 AM");
       case "received":
-        return specimen.received;
+        return ensureDateTime(specimen.received, "9:15 AM");
       case "reported":
-        return specimen.reported;
+        return ensureDateTime(specimen.reported, "1:15 PM");
       case "facility":
         return specimen.facility;
       case "facilityAddress": {
