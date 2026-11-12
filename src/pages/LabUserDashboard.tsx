@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,8 @@ import {
   Files,
   Upload,
   FileDown,
+  ArrowUp,
+  ArrowDown,
   ArrowUpDown,
   ArrowLeftRight,
   ZoomIn,
@@ -195,6 +197,96 @@ const getDisplayStatus = (status: string, hasView: boolean) => {
   return "Pending";
 };
 
+const parseDateValue = (val?: string): number => {
+  if (!val) return 0;
+  const t = new Date(val).getTime();
+  return Number.isNaN(t) ? 0 : t;
+};
+
+const getSortValue = (specimen: Specimen, colId: string): string | number => {
+  switch (colId) {
+    case "lcId": {
+      const digits = specimen.lcId ? specimen.lcId.replace(/\D/g, "") : "";
+      return digits ? parseInt(digits, 10) : (specimen.lcId || "");
+    }
+    case "specimenId":
+      return specimen.specimenId || "";
+    case "reportStatus":
+      return getDisplayStatus(specimen.status, specimen.hasView);
+    case "panelName":
+      return specimen.panelName || "Comprehensive PGx Panel";
+    case "reportTitle":
+      return specimen.reportTitle || "Pharmacogenomics Report";
+    case "collected":
+      return parseDateValue(specimen.collected);
+    case "received":
+      return parseDateValue(specimen.received);
+    case "reported":
+      return parseDateValue(specimen.reported);
+    case "facility":
+      return specimen.facility || "";
+    case "facilityAddress": {
+      const line1 = specimen.facilityAddressLine1?.trim();
+      const line2 =
+        specimen.facilityAddressLine2 && specimen.facilityAddressLine2.trim() !== "—"
+          ? specimen.facilityAddressLine2.trim()
+          : null;
+      const city = specimen.facilityCity?.trim();
+      const state = specimen.facilityState?.trim();
+      const zip = specimen.facilityZip?.trim();
+      const country = specimen.facilityCountry?.trim();
+      const stateZip = [state, zip].filter(Boolean).join(" ");
+      const parts = [line1, line2, city, stateZip, country].filter(Boolean);
+      return parts.length > 0 ? parts.join(", ") : (specimen.facilityAddress || "");
+    }
+    case "facilityAddressLine1":
+      return specimen.facilityAddressLine1 || "";
+    case "facilityAddressLine2":
+      return specimen.facilityAddressLine2 || "";
+    case "facilityCity":
+      return specimen.facilityCity || "";
+    case "facilityState":
+      return specimen.facilityState || specimen.providerState || "";
+    case "facilityCountry":
+      return specimen.facilityCountry || "";
+    case "facilityZip":
+      return specimen.facilityZip || "";
+    case "provider":
+      return specimen.provider || "";
+    case "dateOfBirth":
+      return parseDateValue(specimen.dateOfBirth);
+    case "gender":
+      return specimen.gender || "";
+    case "mrn":
+      return specimen.mrn || "";
+    case "patientName": {
+      const last = specimen.patientLastName?.trim() || "";
+      const first = specimen.patientFirstName?.trim() || "";
+      return `${last}, ${first}`;
+    }
+    case "patientFirstName":
+      return specimen.patientFirstName || "";
+    case "patientLastName":
+      return specimen.patientLastName || "";
+    case "collectionMethodCode":
+      return specimen.collectionMethodCode || "";
+    case "collectionMethodLabel":
+      return specimen.collectionMethodLabel || "";
+    case "providerTitle":
+      return specimen.providerTitle || "";
+    case "providerNPI":
+      return specimen.providerNPI || "";
+    case "lastUpdated":
+      return parseDateValue(specimen.lastUpdated);
+    case "downloadPdf":
+      return getDisplayStatus(specimen.status, specimen.hasView);
+    case "exception":
+      return getDisplayStatus(specimen.status, specimen.hasView) === "Failed" ? 1 : 0;
+    default:
+      return "";
+  }
+};
+
 type FilterState = {
   // Patient & Specimen Search options
   firstName: string;
@@ -320,6 +412,21 @@ const LabUserDashboard = () => {
   const { specimens, updateSpecimen, deleteSpecimen } = useSpecimenContext();
   const [specimenToDelete, setSpecimenToDelete] = useState<Specimen | null>(null);
   const [specimenToUnflag, setSpecimenToUnflag] = useState<Specimen | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ column: string; direction: "asc" | "desc" }>({
+    column: "collected",
+    direction: "desc",
+  });
+
+  const handleSort = (columnId: string) => {
+    setSortConfig((prev) => {
+      if (prev.column === columnId) {
+        return { column: columnId, direction: prev.direction === "asc" ? "desc" : "asc" };
+      }
+      const isDateField = ["collected", "received", "reported", "lastUpdated", "dateOfBirth"].includes(columnId);
+      return { column: columnId, direction: isDateField ? "desc" : "asc" };
+    });
+    setCurrentPage(1);
+  };
 
   const confirmDeleteSpecimen = () => {
     if (!specimenToDelete) return;
@@ -552,8 +659,27 @@ const LabUserDashboard = () => {
       return true;
     });
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const valA = getSortValue(a, sortConfig.column);
+      const valB = getSortValue(b, sortConfig.column);
+
+      let comparison = 0;
+      if (typeof valA === "number" && typeof valB === "number") {
+        comparison = valA - valB;
+      } else {
+        comparison = String(valA).localeCompare(String(valB), undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
+      }
+
+      return sortConfig.direction === "asc" ? comparison : -comparison;
+    });
+  }, [filtered, sortConfig]);
+
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const paginated = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const isBatchMode = reportFilter === "processing" || reportFilter === "pending-regenerate";
   const processingPageIds = paginated.map((s) => s.id);
@@ -1605,16 +1731,26 @@ const LabUserDashboard = () => {
                 )}
                 {visibleColumns.map((col) => {
                   const w = getColWidth(col.id);
+                  const isSorted = sortConfig.column === col.id;
 
                   return (
                     <TableHead
                       key={col.id}
                       style={{ width: `${w}px`, minWidth: `${w}px` }}
-                      className="relative group text-[13px] font-medium py-2 px-3 align-middle select-none"
+                      onClick={() => handleSort(col.id)}
+                      className="relative group text-[13px] font-medium py-2 px-3 align-middle select-none cursor-pointer hover:bg-muted/40 transition-colors"
                     >
                       <div className="flex items-center gap-1 leading-snug pr-3">
                         <span className="line-clamp-2 break-words">{col.label}</span>
-                        <ArrowUpDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+                        {isSorted ? (
+                          sortConfig.direction === "asc" ? (
+                            <ArrowUp className="h-3 w-3 shrink-0 text-primary" />
+                          ) : (
+                            <ArrowDown className="h-3 w-3 shrink-0 text-primary" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 shrink-0 text-muted-foreground/60 group-hover:text-muted-foreground" />
+                        )}
                       </div>
                       {renderResizeHandle(col.id)}
                     </TableHead>
@@ -1625,17 +1761,41 @@ const LabUserDashboard = () => {
                 {!isBatchMode && (
                   <TableHead
                     style={{ width: `${getColWidth("downloadPdf") || 140}px`, minWidth: "130px" }}
-                    className="relative group text-[13px] font-medium whitespace-nowrap text-center py-2 px-3 align-middle select-none border-l border-border/40"
+                    onClick={() => handleSort("downloadPdf")}
+                    className="relative group text-[13px] font-medium whitespace-nowrap text-center py-2 px-3 align-middle select-none border-l border-border/40 cursor-pointer hover:bg-muted/40 transition-colors"
                   >
-                    <span className="pr-2">Reports</span>
+                    <div className="flex items-center justify-center gap-1 leading-snug pr-2">
+                      <span>Reports</span>
+                      {sortConfig.column === "downloadPdf" ? (
+                        sortConfig.direction === "asc" ? (
+                          <ArrowUp className="h-3 w-3 shrink-0 text-primary" />
+                        ) : (
+                          <ArrowDown className="h-3 w-3 shrink-0 text-primary" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 shrink-0 text-muted-foreground/60 group-hover:text-muted-foreground" />
+                      )}
+                    </div>
                     {renderResizeHandle("downloadPdf")}
                   </TableHead>
                 )}
                 <TableHead
                   style={{ width: `${getColWidth("exception") || 80}px`, minWidth: "70px" }}
-                  className="relative group text-[13px] font-medium whitespace-nowrap text-center py-2 px-3 align-middle select-none border-l border-border/40"
+                  onClick={() => handleSort("exception")}
+                  className="relative group text-[13px] font-medium whitespace-nowrap text-center py-2 px-3 align-middle select-none border-l border-border/40 cursor-pointer hover:bg-muted/40 transition-colors"
                 >
-                  <span>Exception</span>
+                  <div className="flex items-center justify-center gap-1 leading-snug">
+                    <span>Exception</span>
+                    {sortConfig.column === "exception" ? (
+                      sortConfig.direction === "asc" ? (
+                        <ArrowUp className="h-3 w-3 shrink-0 text-primary" />
+                      ) : (
+                        <ArrowDown className="h-3 w-3 shrink-0 text-primary" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-3 w-3 shrink-0 text-muted-foreground/60 group-hover:text-muted-foreground" />
+                    )}
+                  </div>
                   {renderResizeHandle("exception")}
                 </TableHead>
                 <TableHead
