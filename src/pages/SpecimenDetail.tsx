@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useSpecimenContext } from "@/context/SpecimenContext";
+import { useSpecimenContext, formatDateTime, ensureDateTime } from "@/context/SpecimenContext";
 import { Specimen } from "@/data/mockSpecimens";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -87,11 +87,7 @@ const SpecimenDetail = () => {
         status: "Awaiting Release",
         hasDownload: true,
         hasView: false,
-        reported: new Date().toLocaleDateString("en-US", {
-          month: "2-digit",
-          day: "2-digit",
-          year: "numeric",
-        }),
+        reported: formatDateTime(new Date()),
       });
       toast.success(`Report generated successfully for ${specimen.specimenId}!`);
     }, 800);
@@ -102,11 +98,7 @@ const SpecimenDetail = () => {
       status: "Released",
       hasView: true,
       hasDownload: true,
-      reported: new Date().toLocaleDateString("en-US", {
-        month: "2-digit",
-        day: "2-digit",
-        year: "numeric",
-      }),
+      reported: formatDateTime(new Date()),
     });
     toast.success(`Report for specimen ${specimen.specimenId} has been released!`);
   };
@@ -118,11 +110,7 @@ const SpecimenDetail = () => {
         status: "Awaiting Release",
         hasDownload: true,
         hasView: false,
-        reported: new Date().toLocaleDateString("en-US", {
-          month: "2-digit",
-          day: "2-digit",
-          year: "numeric",
-        }),
+        reported: formatDateTime(new Date()),
       });
       toast.success(`Report regenerated successfully for ${specimen.specimenId}!`);
     }, 800);
@@ -256,7 +244,7 @@ const SpecimenDetail = () => {
               </span>
               <span>
                 <span className="text-muted-foreground">Reported: </span>
-                <span className="font-semibold text-foreground">{specimen.reported || "—"}</span>
+                <span className="font-semibold text-foreground">{ensureDateTime(specimen.reported, "1:15 PM") || "—"}</span>
               </span>
             </div>
           </div>
@@ -303,7 +291,6 @@ const SpecimenDetail = () => {
                 <DetailRow label="Report Status:" value={displayStatus} />
                 <DetailRow label="Panel Name:" value={specimen.panelName || "Comprehensive PGx Panel"} />
                 <DetailRow label="Report Title:" value={specimen.reportTitle || "Pharmacogenomics Report"} />
-                <DetailRow label="Batch Number:" value={specimen.batchNumber || "—"} />
                 <DetailRow label="Last Updated:" value={specimen.lastUpdated || "—"} />
               </div>
 
@@ -313,9 +300,9 @@ const SpecimenDetail = () => {
                 <DetailRow label="DOB:" value={specimen.dateOfBirth || "—"} />
                 <DetailRow label="Gender:" value={specimen.gender || "—"} />
                 <DetailRow label="MRN:" value={specimen.mrn || "—"} />
-                <DetailRow label="Collected:" value={specimen.collected || "—"} />
-                <DetailRow label="Received:" value={specimen.received || "—"} />
-                <DetailRow label="Reported:" value={specimen.reported || "—"} />
+                <DetailRow label="Collected:" value={ensureDateTime(specimen.collected, "5:10 AM") || "—"} />
+                <DetailRow label="Received:" value={ensureDateTime(specimen.received, "9:15 AM") || "—"} />
+                <DetailRow label="Reported:" value={ensureDateTime(specimen.reported, "1:15 PM") || "—"} />
               </div>
 
               {/* Column 3: Facility, Provider & Method */}

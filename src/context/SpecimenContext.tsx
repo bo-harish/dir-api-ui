@@ -11,7 +11,29 @@ interface SpecimenContextType {
   resetToDefault: () => void;
 }
 
-const STORAGE_KEY = "lab_user_specimens_data_v13";
+const STORAGE_KEY = "lab_user_specimens_data_v14";
+
+export const formatDateTime = (date: Date = new Date()): string => {
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const yyyy = date.getFullYear();
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  return `${mm}/${dd}/${yyyy} ${hours}:${minutes} ${ampm}`;
+};
+
+export const ensureDateTime = (val?: string, defaultTime = "5:10 AM"): string => {
+  if (!val || val === "—") return "";
+  const trimmed = val.trim();
+  if (!trimmed) return "";
+  if (trimmed.includes(":") || /am|pm/i.test(trimmed)) {
+    return trimmed;
+  }
+  return `${trimmed} ${defaultTime}`;
+};
 
 const cleanOldStorage = () => {
   try {
@@ -27,6 +49,7 @@ const cleanOldStorage = () => {
     localStorage.removeItem("lab_user_specimens_data_v10");
     localStorage.removeItem("lab_user_specimens_data_v11");
     localStorage.removeItem("lab_user_specimens_data_v12");
+    localStorage.removeItem("lab_user_specimens_data_v13");
   } catch (e) { }
 };
 
@@ -60,6 +83,9 @@ export const SpecimenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           return parsed.map((s) => ({
             ...s,
             lcId: s.lcId ? s.lcId.replace(/^LC-/i, "") : s.lcId,
+            collected: ensureDateTime(s.collected, "5:10 AM"),
+            received: ensureDateTime(s.received, "9:15 AM"),
+            reported: ensureDateTime(s.reported, "1:15 PM"),
           }));
         }
       }
@@ -93,9 +119,9 @@ export const SpecimenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       dateOfBirth: data.dateOfBirth || "",
       gender: data.gender || "U",
       mrn: data.mrn || `MRN-${Math.floor(1000 + Math.random() * 9000)}`,
-      collected: data.collected || new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }),
-      received: data.received || new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }),
-      reported: data.reported || "",
+      collected: data.collected ? ensureDateTime(data.collected, "5:10 AM") : formatDateTime(),
+      received: data.received ? ensureDateTime(data.received, "9:15 AM") : formatDateTime(),
+      reported: data.reported ? ensureDateTime(data.reported, "1:15 PM") : "",
       lastUpdated: new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }),
       facility: data.facility || "Recovery Unplugged",
       facilityAddress: data.facilityAddress || "",
