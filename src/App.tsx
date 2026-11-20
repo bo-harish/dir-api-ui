@@ -47,6 +47,11 @@ const App = () => (
               <Route path="/lab-user/specimen/:specimenId/edit" element={<AddEditSpecimen />} />
               <Route path="/lab-user/specimen/:specimenId/report" element={<SpecimenReport />} />
               <Route path="/anonymous-portal" element={<AnonymousPortal />} />
+              <Route path="/anonymous-portal/:specimenId" element={<AnonymousPortal />} />
+              <Route path="/lab-user/anonymous-portal" element={<AnonymousPortal />} />
+              <Route path="/lab-user/anonymous-portal/:specimenId" element={<AnonymousPortal />} />
+              <Route path="/anonymous_portal" element={<AnonymousPortal />} />
+              <Route path="/anonymousportal" element={<AnonymousPortal />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </SpecimenProvider>

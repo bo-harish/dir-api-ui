@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -118,6 +118,7 @@ const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   lastUpdated: 165,
   downloadPdf: 140,
   exception: 80,
+  pgPortal: 110,
   action: 70,
 };
 
@@ -282,6 +283,8 @@ const getSortValue = (specimen: Specimen, colId: string): string | number => {
       return getDisplayStatus(specimen.status, specimen.hasView);
     case "exception":
       return getDisplayStatus(specimen.status, specimen.hasView) === "Failed" ? 1 : 0;
+    case "pgPortal":
+      return getDisplayStatus(specimen.status, specimen.hasView) === "Released" ? 1 : 0;
     default:
       return "";
   }
@@ -998,7 +1001,10 @@ const LabUserDashboard = () => {
         if (displayStatus === "Released") {
           return (
             <div className="flex items-center justify-center">
-              <button className="text-link inline-flex items-center gap-1 text-[13px] font-medium cursor-pointer">
+              <button
+                className="text-link inline-flex items-center gap-1 text-[13px] font-medium cursor-pointer"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Download className="h-3.5 w-3.5" />
                 Download
               </button>
@@ -1016,6 +1022,7 @@ const LabUserDashboard = () => {
               <button
                 type="button"
                 aria-label="Exception"
+                onClick={(e) => e.stopPropagation()}
                 className="inline-flex items-center justify-center text-destructive hover:opacity-80 cursor-pointer"
               >
                 <AlertCircle className="h-5 w-5" />
@@ -1027,9 +1034,29 @@ const LabUserDashboard = () => {
           </Tooltip>
         );
       }
-      case "action": {
+      case "pgPortal": {
+        const displayStatus = getDisplayStatus(specimen.status, specimen.hasView);
+        if (displayStatus !== "Released") return null;
+
         return (
           <div className="flex items-center justify-center">
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="h-7 text-[12px] px-2.5 font-medium cursor-pointer text-primary border-primary/40 hover:bg-accent hover:text-white hover:border-accent transition-colors group"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Link to="/anonymous-portal">
+                <span>View</span>
+              </Link>
+            </Button>
+          </div>
+        );
+      }
+      case "action": {
+        return (
+          <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -1799,6 +1826,25 @@ const LabUserDashboard = () => {
                   {renderResizeHandle("exception")}
                 </TableHead>
                 <TableHead
+                  style={{ width: `${getColWidth("pgPortal") || 110}px`, minWidth: "100px" }}
+                  onClick={() => handleSort("pgPortal")}
+                  className="relative group text-[13px] font-medium whitespace-nowrap text-center py-2 px-3 align-middle select-none border-l border-border/40 cursor-pointer hover:bg-muted/40 transition-colors"
+                >
+                  <div className="flex items-center justify-center gap-1 leading-snug">
+                    <span>PG Portal</span>
+                    {sortConfig.column === "pgPortal" ? (
+                      sortConfig.direction === "asc" ? (
+                        <ArrowUp className="h-3 w-3 shrink-0 text-primary" />
+                      ) : (
+                        <ArrowDown className="h-3 w-3 shrink-0 text-primary" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-3 w-3 shrink-0 text-muted-foreground/60 group-hover:text-muted-foreground" />
+                    )}
+                  </div>
+                  {renderResizeHandle("pgPortal")}
+                </TableHead>
+                <TableHead
                   style={{ width: `${getColWidth("action") || 70}px`, minWidth: "60px" }}
                   className="relative group text-[13px] font-medium whitespace-nowrap text-center py-2 px-3 align-middle select-none border-l border-border/40"
                 >
@@ -1811,7 +1857,7 @@ const LabUserDashboard = () => {
               {paginated.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={visibleColumns.length + (!isBatchMode ? 1 : 0) + 2 + (isBatchMode ? 1 : 0)}
+                    colSpan={visibleColumns.length + (!isBatchMode ? 1 : 0) + 3 + (isBatchMode ? 1 : 0)}
                     className="text-center py-8 text-muted-foreground text-sm"
                   >
                     No specimens found
@@ -1821,7 +1867,8 @@ const LabUserDashboard = () => {
                 paginated.map((specimen, idx) => (
                   <TableRow
                     key={specimen.id}
-                    className={`group hover:bg-muted/50 ${isBatchMode && selectedProcessingIds.includes(specimen.id)
+                    onClick={() => navigate(`/lab-user/specimen/${specimen.id}`)}
+                    className={`group cursor-pointer hover:bg-muted/50 transition-colors ${isBatchMode && selectedProcessingIds.includes(specimen.id)
                       ? "bg-primary/5"
                       : ""
                       }`}
@@ -1860,6 +1907,7 @@ const LabUserDashboard = () => {
                       <TableCell
                         style={{ width: `${getColWidth("downloadPdf") || 140}px`, minWidth: "130px" }}
                         className="text-[13px] whitespace-nowrap py-2 px-3 text-center border-l border-border/40"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {renderCellContent("downloadPdf", specimen, idx)}
                       </TableCell>
@@ -1867,12 +1915,21 @@ const LabUserDashboard = () => {
                     <TableCell
                       style={{ width: `${getColWidth("exception") || 80}px`, minWidth: "70px" }}
                       className="text-[13px] whitespace-nowrap py-2 px-3 text-center border-l border-border/40"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       {renderCellContent("exception", specimen, idx)}
                     </TableCell>
                     <TableCell
+                      style={{ width: `${getColWidth("pgPortal") || 110}px`, minWidth: "100px" }}
+                      className="text-[13px] whitespace-nowrap py-2 px-3 text-center border-l border-border/40"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {renderCellContent("pgPortal", specimen, idx)}
+                    </TableCell>
+                    <TableCell
                       style={{ width: `${getColWidth("action") || 70}px`, minWidth: "60px" }}
                       className="text-[13px] whitespace-nowrap py-2 px-3 text-center border-l border-border/40"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       {renderCellContent("action", specimen, idx)}
                     </TableCell>
